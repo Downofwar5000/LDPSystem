@@ -1,0 +1,20 @@
+[
+    {
+        "customerID": 10001,
+        "authenticationKey": "OBIHFHGPZFNFRWY6IRMGME6FR2DU4W66",
+        "customerEmail": "newemail123@example.com",
+        "customerName": "John Doe",
+        "customerNotes": "Preferred delivery before noon",
+        "customerPhone": "+441234567892",
+        "customerRate": "4.5"
+    },
+    {
+        "customerID": 10002,
+        "authenticationKey": "AOE7Y5S65Y47JUJRYBCB52TBBWFDHVH7",
+        "customerEmail": "updatedemail@example.com",
+        "customerName": "New Customer",
+        "customerNotes": "No specific notes",
+        "customerPhone": "+441234567892",
+        "customerRate": "5.0"
+    }
+]

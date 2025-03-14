@@ -1,0 +1,13 @@
+[
+  {
+    "distributorID": 1001,
+    "distributorEmail": "distributor@example.com",
+    "authenticationKey": "SMJMPTNFE5KDFVDFCVBHSYOKYNNRJOOE",
+    "distributorPhone": "+441234567892",
+    "distributorPay": "1200",
+    "distributorCurrentOrder": "0",
+    "distributorRate": "5",
+    "distributorFName": "Alice",
+    "distributorLName": "Smiths"
+  }
+]
