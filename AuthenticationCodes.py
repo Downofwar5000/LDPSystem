@@ -1,33 +1,35 @@
 # Import libraries
-import sqlite3
+import json
 import pyotp
 import time
 
-# Connect to SQLite db
-conn = sqlite3.connect("database.db")
-cursor = conn.cursor()
+def loadJson(filename):
+    # Loads a JSON file and returns its contents
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []  # Return an empty list if file doesn't exist or is corrupted
+
 
 # Define Globar Vars
-ID = [[2, 4, 5],["tblAdmin", "tblDistributor", "tblCustomer"]]
+ID = [[2, 4, 5],["admin", "distributor", "customer"]]
+dbPath = "./_database"
+
 
 # Function to fetch the authentication key of an account by primary key
 def fetchAuthByID(enteredID, table):
-    try:
-        # Query to fetch the authentication key
-        query = f"SELECT authenticationKey FROM {table} WHERE rowid = {enteredID}"
-        cursor.execute(query)
-        
-        # Fetch the result
-        result = cursor.fetchone()
-        
-        if result:
-            return result[0]
-        else:
-            print(f"No user found with ID: {enteredID}")
-            return None
-    except sqlite3.Error as e:
-        print(f"Error occurred: {e}")
-        return None
+    # Fetches the authentication key for a given user ID
+    indexData = loadJson(f"{dbPath}/_index.json")
+    tableFile = f"{dbPath}/{table}.json"
+
+    recordPosition = indexData[table + "Index"][str(enteredID)]
+    tableData = loadJson(tableFile)
+
+    authKey = tableData[recordPosition]["authenticationKey"]
+    
+    print(authKey)
+    return authKey
 
 # Function to generate OTP based off of authKey
 def generateAuthKey(authKey):
@@ -43,9 +45,8 @@ while True:
     userID = input("Please enter the ID you'd like to login to: ")
     try:
         arrayPos = ID[0].index(len(userID))  # Look for the length in ID[1]
-        print(f"Array position: {arrayPos}")
         table = ID[1][arrayPos]
-        correctKey = generateAuthKey(fetchAuthByID(userID, table))
+        correctKey = generateAuthKey(fetchAuthByID(userID))
     except ValueError:
         print("Length not found in the array.", "Please try a different ID")
 
