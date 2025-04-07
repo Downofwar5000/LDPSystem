@@ -1,6 +1,6 @@
 [
     {
-        "customerID": 10001,
+        "customerId": 10001,
         "authenticationKey": "OBIHFHGPZFNFRWY6IRMGME6FR2DU4W66",
         "customerEmail": "newemail123@example.com",
         "customerName": "John Doe",
@@ -9,7 +9,7 @@
         "customerRate": "4.5"
     },
     {
-        "customerID": 10002,
+        "customerId": 10002,
         "authenticationKey": "AOE7Y5S65Y47JUJRYBCB52TBBWFDHVH7",
         "customerEmail": "updatedemail@example.com",
         "customerName": "New Customer",

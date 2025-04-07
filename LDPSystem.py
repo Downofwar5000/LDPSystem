@@ -2,7 +2,7 @@
 import pyotp
 import time
 import tkinter as tk
-from tkinter import NSEW, PhotoImage, ttk, messagebox, StringVar
+from tkinter import NSEW, ttk, messagebox, StringVar
 import json
 import osmnx as ox
 import geopandas as gpd
@@ -38,26 +38,27 @@ def buildIndex():
         tableFile = f"{dbPath}/{table}.json"
         tableData = loadJson(tableFile)
 
-        indexData[table + "Index"] = {str(entry.get(table + "ID")): i for i, entry in enumerate(tableData) if table + "ID" in entry}
+        indexData[table + "Index"] = {str(entry.get(table + "Id")): i for i, entry in enumerate(tableData) if table + "Id" in entry}
 
     writeJson(indexFile, indexData)
     print("Index rebuilt successfully.")
 
 def submit(self, orderFields, result):
     # Load JSON data
-    tableOrder = loadJson(f"{dbPath}/order.json")
+    orderData = loadJson(f"{dbPath}/order.json")
     indexData = loadJson(f"{dbPath}/_index.json")
+    distributorData = loadJson(f"{dbPath}/distributor.json")
 
     # Generate necessary fields
     date = str(time.strftime("%d%m%Y"))
     orderStatus = 0
 
-    # Generate new unique Order ID
-    orderID = max([record.get("orderID", 0) for record in tableOrder], default=0) + 1
+    # Generate new unique Order Id
+    orderId = max([record.get("orderId", 0) for record in orderData], default=0) + 1
 
-    # Extract customerID from the input
-    customerTextWidget = self.orderRow.get("customerID")
-    customerID = customerTextWidget.get("1.0", "end-1c").strip()
+    # Extract customerId from the input
+    customerTextWidget = self.orderRow.get("customerId")
+    customerId = customerTextWidget.get("1.0", "end-1c").strip()
 
     # Verification
 
@@ -72,6 +73,8 @@ def submit(self, orderFields, result):
 
 
     # Check if the due date is in the future
+
+    # Check if the date is in the correct format
     try:
         date1 = time.strptime((result[0]), "%d%m%Y")
     except ValueError:
@@ -84,19 +87,10 @@ def submit(self, orderFields, result):
         messagebox.showerror("Invalid Date", "Please enter a date in the future.")
         return
 
-    # Check if the distributorID is correct
-
-    if result[2]:
-        if not any(int(result[2]) in record for record in loadJson(f"{dbPath}/distributor.json")):
-            messagebox.showerror("Invalid Distributor", "Please enter a valid distributor ID.")
-            return
-    else:
-        messagebox.showinfo("Distributor ID", "No distributor ID entered, the order will be assigned to the next available distributor.")
-
-    # Check if the customerID is correct
+    # Check if the customerId is correct
 
     if not any(result[3] in record for record in loadJson(f"{dbPath}/customer.json")):
-        messagebox.showerror("Invalid Customer", "Please enter a valid customer ID.")
+        messagebox.showerror("Invalid Customer", "Please enter a valid customer Id.")
         return
 
     # Check if the postcode exists
@@ -106,19 +100,23 @@ def submit(self, orderFields, result):
         messagebox.showerror("Invalid Postcode", "Please enter a valid postcode.")
         return
 
+    # Create dyanimc variables for the order
+
+
     # Generate node map for the order
+    
     HousesNum = getHouseholdNetwork(result[1])
 
     # Calculate cost based on customer rate
 
     customerData = loadJson(f"{dbPath}/customer.json")
-    customerIndex = indexData.get("customerIndex", {}).get(customerID)
+    customerIndex = indexData.get("customerIndex", {}).get(customerId)
     customerRecord = customerData[customerIndex]
     cost = customerRecord.get("customerRate", 0) * HousesNum / 10
 
     # Fill in the new order details
     newOrder = {
-        "orderID": orderID,
+        "orderId": orderId,
         "orderStatus": str(orderStatus),
         "orderDate": str(date),
         "invoiceAmount": str(cost),
@@ -131,8 +129,14 @@ def submit(self, orderFields, result):
         newOrder[field] = value
 
     # Append order to the database
-    tableOrder.append(newOrder)
-    writeJson(f"{dbPath}/order.json", tableOrder)
+    orderData.append(newOrder)
+    writeJson(f"{dbPath}/order.json", orderData)
+
+    # Assign distributor to the new order
+    if result[2]:
+        distributorIndex = indexData.get("distributorIndex", {}).get(result[2])
+        distributorRecord = distributorData[distributorIndex]
+        distributorRecord["currentOrder"] = orderId
 
     # Update the index and save it
     buildIndex()
@@ -146,7 +150,7 @@ def submit(self, orderFields, result):
 
 def copyAuthKey():
     # Copies the authentication key for the current user
-    authKey = fetchAuthByID(userId)
+    authKey = fetchAuthById(userId)
     app.clipboard_clear()
     app.clipboard_append(authKey)
     app.update()  # now it stays on the clipboard after the window is closed
@@ -159,7 +163,7 @@ def resetAuthKey():
     indexData = loadJson(indexFile)
 
     if table + "Index" not in indexData or str(userId) not in indexData[table + "Index"]:
-        print(f"Error: Record ID {userId} not found in {table}.")
+        print(f"Error: Record Id {userId} not found in {table}.")
 
     recordPosition = indexData[table + "Index"][str(userId)]
     tableData = loadJson(tableFile)
@@ -170,12 +174,12 @@ def resetAuthKey():
     messagebox.showinfo("Reset Authentication Token", f"New authentication key generated: {authKey}")
     copyAuthKey()
 
-def fetchAuthByID(enteredID):
-    # Fetches the authentication key for a given user ID
+def fetchAuthById(enteredId):
+    # Fetches the authentication key for a given user Id
     indexData = loadJson(indexFile)
     tableFile = f"{dbPath}/{table}.json"
 
-    recordPosition = indexData[table + "Index"][str(enteredID)]
+    recordPosition = indexData[table + "Index"][str(enteredId)]
     tableData = loadJson(tableFile)
 
     authKey = tableData[recordPosition]["authenticationKey"]
@@ -266,11 +270,12 @@ def getHouseholdNetwork(postcode, country="UK"):
     print(f"Number of households in {postcode}: {len(centroids)}")
     return len(centroids)
 
+
 # Define global variables
 
 accountType = None
-userId = 1001
-table = "distributor"
+userId = None
+table = None
 dbPath = "./_database"
 indexFile = f"{dbPath}/_index.json"
 
@@ -287,7 +292,7 @@ class Application(tk.Tk):
         self.geometry("1000x600")
         self.resizable(True, True)
         self.currentFrame = None
-        self.switchFrame(distributorFrame) 
+        self.switchFrame(adminFrame) 
 
     def switchFrame(self, frameClass, *args, **kwargs):
         # Destroys current frame
@@ -305,31 +310,31 @@ class Login(tk.Frame):
         # Login Layout
         Login = tk.Frame(self)
         Login.pack(pady=20)
-        tk.Label(Login, text="Account ID", borderwidth=2, padx=10, pady=10).grid(row=0, column=0)
-        enteredID = tk.Text(Login, height=1, width=5, borderwidth=2)
-        enteredID.grid(row=0, column=1)
+        tk.Label(Login, text="Account Id", borderwidth=2, padx=10, pady=10).grid(row=0, column=0)
+        enteredId = tk.Text(Login, height=1, width=5, borderwidth=2)
+        enteredId.grid(row=0, column=1)
         tk.Label(Login, text="6 Digit Authentication Code", borderwidth=2, padx=10, pady=10).grid(row=1, column=0)
         userCode = tk.Text(Login, height=1, width=6, wrap="word", borderwidth=2)
         userCode.grid(row=1, column=1)
-        ttk.Button(Login, text="Login", command=lambda: self.authUser(enteredID, userCode)).grid(row=3, column=0, padx=10, pady=10)
+        ttk.Button(Login, text="Login", command=lambda: self.authUser(enteredId, userCode)).grid(row=3, column=0, padx=10, pady=10)
 
     # Function to Authenticate User
 
-    def authUser(self, enteredID, userCode):        
+    def authUser(self, enteredId, userCode):        
         global accountType
         global userId
         global table
-        enteredID = enteredID.get("1.0", tk.END).strip()
+        enteredId = enteredId.get("1.0", tk.END).strip()
         userCode = userCode.get("1.0", tk.END).strip()
-        ID = [[adminFrame, distributorFrame, customerFrame],[2, 4, 5],["admin", "distributor", "customer"]]
+        Id = [[adminFrame, distributorFrame, customerFrame],[2, 4, 5],["admin", "distributor", "customer"]]
         try:
-            arrayPos = ID[1].index(len(enteredID))  # Look for the length in ID[1]
+            arrayPos = Id[1].index(len(enteredId))  # Look for the length in Id[1]
         except ValueError:
-            messagebox.showerror("User Error","Not Logged In, Incorrect ID")
-        accountType = ID[0][arrayPos]
-        userId = enteredID
-        table = ID[2][arrayPos]
-        correctKey = generateAuthKey(fetchAuthByID(enteredID))
+            messagebox.showerror("User Error","Not Logged In, Incorrect Id")
+        accountType = Id[0][arrayPos]
+        userId = enteredId
+        table = Id[2][arrayPos]
+        correctKey = generateAuthKey(fetchAuthById(enteredId))
         print(correctKey)
         if userCode in correctKey:
             self.master.switchFrame(accountType)
@@ -365,12 +370,34 @@ class adminFrame(tk.Frame):
     def switchToViewPage(self, tableName):
         self.tableName = tableName
         if tableName == "order":
-            self.columnsToDisplay = ["orderID", "orderStatus", "orderDate", "invoiceAmount"]
+            self.columnsToDisplay = ["orderId", 
+                                     "orderStatus", 
+                                     "orderDate", 
+                                     "invoiceAmount",
+                                     "orderMap",
+                                     "orderDueDate",
+                                     "orderPostCode",
+                                     "distributorId",
+                                     "customerId"
+                                     ]
         elif tableName == "customer":
-            self.columnsToDisplay = ["customerID", "customerFName", "customerLName", "customerEmail"]
+            self.columnsToDisplay = ["customerId", 
+                                     "customerEmail",
+                                     "customerName",
+                                     "customerNotes",
+                                     "customerPhone",
+                                     "customerRate"
+                                     ]
         else:
-            self.columnsToDisplay = ["distributorID", "distributorFName", "distributorLName", "distributorPay"]
-
+            self.columnsToDisplay = ["distributorId", 
+                                     "distributorFName", 
+                                     "distributorLName", 
+                                     "distributorPay",
+                                     "distributorEmail",
+                                     "distributorPhone",
+                                     "distributorCurrentOrder",
+                                     "distributorRate"
+                                     ]
         self.clearFrame()
         self.viewPage()
 
@@ -389,10 +416,20 @@ class adminFrame(tk.Frame):
         self.tree = ttk.Treeview(tableFrame, columns=self.columnsToDisplay, show="headings")
         for col in self.columnsToDisplay:
             self.tree.heading(col, text=col)
-            self.tree.column(col, anchor="w")
+            self.tree.column(col, anchor="w", width=100, stretch=True)
        
         
         self.tree.pack(fill="both", expand=True)
+
+        # Bind intialisation to auto-resize columns
+        def resizeColumns(event):
+            totalWidth = event.width
+            nCols = len(self.columnsToDisplay)
+            if nCols > 0:
+                colWidth = totalWidth // nCols
+                for col in self.columnsToDisplay:
+                    self.tree.column(col, width=colWidth)
+        self.tree.bind("<Configure>", resizeColumns)
 
         self.populateList()
 
@@ -421,14 +458,14 @@ class adminFrame(tk.Frame):
         contextMenu = tk.Menu(self.master, tearoff=0)
     
         # Add a command to the menu
-        contextMenu.add_command(label="Remove Record", command=lambda: self.removeRecord(self.getSelectedID(event)))
+        contextMenu.add_command(label="Remove Record", command=lambda: self.removeRecord(self.getSelectedId(event)))
         if self.tableName == "order":
-            contextMenu.add_command(label="Mark as Paid", command=lambda: self.markAsPaid(self.getSelectedID(event)))
+            contextMenu.add_command(label="Mark as Paid", command=lambda: self.markAsPaid(self.getSelectedId(event)))
     
         # Display the context menu at the mouse position
         contextMenu.post(event.x_root, event.y_root)
 
-    def getSelectedID(self, event):
+    def getSelectedId(self, event):
         row = self.tree.identify("item", event.x, event.y)
         if row:
             primaryKey = self.tree.item(row)["values"][0]
@@ -468,35 +505,55 @@ class adminFrame(tk.Frame):
                 messagebox.showinfo("Successful Operation", "Record removed successfully.")
             
             else:
-                messagebox.showerror("Database Error", f"Record with ID {record} not found in index")
+                messagebox.showerror("Database Error", f"Record with Id {record} not found in index")
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
 
     def markAsPaid(self, record):
         try:
-            path = f"{dbPath}/{self.tableName}.json"
             # Load JSON data
-            tableData = loadJson(path)
-            # Load index
+            orderData = loadJson(f"{dbPath}/order.json")
             indexData = loadJson(f"{dbPath}/_index.json")
-            # Get the index dictionary for the table
-            tableIndex = indexData.get(f"{self.tableName}Index", {})
+            orderIndex = indexData.get("orderIndex", {})
             # Find record's position using the index
-            recordPosition = tableIndex.get(record)
+            recordPosition = orderIndex.get(record)
             if recordPosition is not None:
-                if tableData[recordPosition]["orderStatus"] == "0":
+                if orderData[recordPosition]["orderStatus"] == "0":
                     # Mark the record as paid
-                    tableData[recordPosition]["orderStatus"] = "1"
-                    # Save updated JSON data
-                    writeJson(path, tableData)
-                    #Refresh UI
-                    self.populateList()
+                    orderData[recordPosition]["orderStatus"] = "1"
+                  
+                    messagebox.showinfo("Successful Operation", "Record marked as paid successfully")
 
-                    messagebox.showinfo("Successful Operation", "Record marked as paid successfully.")
+                    # Attempt to assign distributor to paid order
+                    distributorData = loadJson(f"{dbPath}/distributor.json")
+                    indexData = loadJson(f"{dbPath}/_index.json")
+
+                    for distributor in distributorData:
+                        if distributor.get("currentOrder") == 0:
+                            orderData[recordPosition]["distributorId"] = distributor.get("distributorId")
+                            break
+                    else:
+                        messagebox.showinfo("No Distributor Available", "No available distributors at the moment, order will be placed in queue.")
+                        orderData[recordPosition]["distributorId"] = None
+
+                    distributorIndex = indexData.get("distributorIndex", {})
+                    distributorRecord = distributorIndex.get(orderData[recordPosition]["distributorId"])
+                    
+                    distributorRecord["currentOrder"] = orderData[recordPosition]["orderId"]
+
+                    # Save updated JSON data
+                    writeJson(f"{dbPath}/order.json", orderData)
+                    writeJson(f"{dbPath}/distributor.json", distributorData)
+
+                    messagebox.showinfo("Successful Operation", "Database Updated")
+                    # Rebuild index to maintain consistency
+                    buildIndex()
+                    # Refresh UI
+                    self.populateList()
                 else:
                     messagebox.showerror("Database Error", "Record is already marked as paid.")
             else:
-                messagebox.showerror("Database Error", f"Record with ID {record} not found in index")
+                messagebox.showerror("Database Error", f"Record with Id {record} not found in index")
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
 
@@ -577,32 +634,71 @@ class adminFrame(tk.Frame):
 
     def submit(self):
         result = []
-        for col, newRecord in self.newRecord.items():
-            text = str(newRecord.get("1.0", "end-1c"))
+        # Collect values from all dynamic text widgets
+        for col, textWidget in self.newRecord.items():
+            text = str(textWidget.get("1.0", "end-1c")).strip()
             result.append(text)
+
+        # Table-specific validation logic
+        if self.tableName == "distributor":
+            # Example field order: distributorId, distributorFName, distributorLName, distributorEmail, distributorPhone, distributorPay
+            distributorId, distributorFName, distributorLName, distributorEmail, distributorPhone, distributorPay = result
+            if not distributorFName or not distributorLName:
+                messagebox.showerror("Validation Error", "Distributor first and last names cannot be empty.")
+                return
+            if "@" not in distributorEmail:
+                messagebox.showerror("Validation Error", "Please enter a valid distributor email.")
+                return
+            # You might also want to validate the phone format or pay values here
+
+        elif self.tableName == "customer":
+            # Example field order: customerId, customerName, customerEmail, customerPhone, customerNotes, customerRate
+            customerId, customerName, customerEmail, customerPhone, customerNotes, customerRate = result
+            if not customerName:
+                messagebox.showerror("Validation Error", "Customer name cannot be empty.")
+                return
+            if "@" not in customerEmail:
+                messagebox.showerror("Validation Error", "Please enter a valid customer email.")
+                return
+            try:
+                rate = float(customerRate)
+            except ValueError:
+                messagebox.showerror("Validation Error", "Customer rate must be numeric.")
+                return
+            # Additional customer validations can go here
+
+        elif self.tableName == "admin":
+            # Example field order: adminId, adminEmail, adminPhone
+            adminId, adminEmail, adminPhone = result
+            if "@" not in adminEmail:
+                messagebox.showerror("Validation Error", "Please enter a valid admin email.")
+                return
+            # Add more admin-specific validations as necessary
+
+        # If validation passes, continue with record creation
         authKey = pyotp.random_base32()
-        messagebox.showinfo("Authentication Key", f"This account's authentication key used to log in is {authKey}, we recommend the user to reset this for security reasons!")
-        
-        newRecord = {"authenticationKey": authKey}
-        newRecord.update({col: value for col, value in zip(self.columnsToDisplay, result)})
+        messagebox.showinfo("Authentication Key",
+                            f"This account's authentication key used to log in is {authKey}, we recommend the user to reset this for security reasons!")
+    
+        # Build the record data dictionary
+        recordData = {"authenticationKey": authKey}
+        recordData.update({col: value for col, value in zip(self.columnsToDisplay, result)})
 
         path = f"{dbPath}/{self.tableName}.json"
-
         tableData = loadJson(path)
 
-        # Determine a unique ID (if needed)
-        newRecord[self.tableName + "ID"] = max([record.get(self.tableName + "ID", 0) for record in tableData], default=0) + 1
+        # Determine a unique Id. If the first result is empty, generate a new Id; otherwise, use the provided one.
+        if not result[0]:
+            recordData[self.tableName + "Id"] = max([record.get(self.tableName + "Id", 0) for record in tableData], default=0) + 1
+        else:
+            recordData[self.tableName + "Id"] = result[0]
 
-        # Append new record
-        tableData.append(newRecord)
-
-        # Save updated JSON data
+        # Append new record and update JSON storage
+        tableData.append(recordData)
         writeJson(path, tableData)
-
         buildIndex()
 
         messagebox.showinfo("Successful Operation", "Record created successfully.")
-
         self.addRecord.destroy()
         self.populateList()
 
@@ -613,7 +709,7 @@ class adminFrame(tk.Frame):
         orderForm = tk.Frame(self)
         orderForm.pack(pady=20)
         # Define order rows
-        orderFields = ["orderDueDate", "orderPostCode", "distributorID", "customerID"]
+        orderFields = ["orderDueDate", "orderPostCode", "distributorId", "customerId"]
         # Create dictionary for Text fields
         self.orderRow = {}
         # Create form by itereating betweeen each row name
@@ -642,20 +738,20 @@ class adminFrame(tk.Frame):
         tk.Label(self, text="Distributor Pay List", font=("San Francisco", 24)).pack(pady=10)
 
         # Treeview widget for displaying data
-        self.tree = ttk.Treeview(self, columns=["distributorID", "distributorFName", "distributorLName", "distributorPay"], show="headings")
+        self.tree = ttk.Treeview(self, columns=["distributorId", "distributorFName", "distributorLName", "distributorPay"], show="headings")
         self.tree.pack(fill="both", expand=True)
 
         # Load data from JSON
         distributors = loadJson(f"{dbPath}/distributor.json")
 
         # Set up Treeview headings
-        for col in ["distributorID", "distributorFName", "distributorLName", "distributorPay"]:
+        for col in ["distributorId", "distributorFName", "distributorLName", "distributorPay"]:
             self.tree.heading(col, text=col)
             self.tree.column(col, anchor="w")
 
         # Insert data into Treeview
         for distributor in distributors:
-            values = [distributor.get(col, "N/A") for col in ["distributorID", "distributorFName", "distributorLName", "distributorPay"]]
+            values = [distributor.get(col, "N/A") for col in ["distributorId", "distributorFName", "distributorLName", "distributorPay"]]
             self.tree.insert("", "end", values=values)
 
         buttonsFrame = tk.Frame(self)
@@ -700,10 +796,10 @@ class customerFrame(tk.Frame):
                 customerName = customerRecord.get("customerName", "N/A")
                 customerPhone = customerRecord.get("customerPhone", "N/A")
             else:
-                messagebox.showerror("Database Error", f"Customer with ID {userId} not found")
+                messagebox.showerror("Database Error", f"Customer with Id {userId} not found")
 
             # Get order statistics
-            customerOrders = [order for order in orderData if order["customerID"] == str(userId)]
+            customerOrders = [order for order in orderData if order["customerId"] == str(userId)]
             totalOrders = len(customerOrders)
             totalHouses = sum(int(order.get("orderHousesNum", 0)) for order in customerOrders)
             mostRecentOrder = max((order["orderDate"] for order in customerOrders), default="N/A")
@@ -771,6 +867,10 @@ class customerFrame(tk.Frame):
         ttk.Button(customerDetails, text="Reset Authentication Token", command=lambda: resetAuthKey()).grid(row=8, column=4, padx=10, pady=10)
         ttk.Button(customerDetails, text="View Pending Invoices", command=lambda: self.pendingInvoices()).grid(row=9, column=4, padx=10, pady=10)
 
+    def clearFrame(self):
+        for widget in self.winfo_children():
+            widget.destroy()
+
     def changeDetails(self):
         if self.editButton["text"] == "Change Account Details":
             # Unlock fields
@@ -795,7 +895,7 @@ class customerFrame(tk.Frame):
                 writeJson(f"{dbPath}/customer.json", customerData)
                 messagebox.showinfo("Successful Operation", "Record updated successfully.")
             else:
-                messagebox.showerror("Database Error", f"Customer with ID {userId} not found")
+                messagebox.showerror("Database Error", f"Customer with Id {userId} not found")
 
             for field in self.entryFields.values():
                 field.config(state="readonly")
@@ -841,7 +941,7 @@ class customerFrame(tk.Frame):
         self.customerPendingInvoices.title("Order Form")
         self.customerPendingInvoices.geometry("400x700")
 
-        self.columnsToDisplay = ["orderID", "invoiceAmount", "orderStatus"]
+        self.columnsToDisplay = ["orderId", "invoiceAmount", "orderStatus"]
         
         tk.Label(self.customerPendingInvoices, text="Pending Invoices", font=("San Francisco", 24)).pack(pady=10)
 
@@ -888,11 +988,12 @@ class distributorFrame(tk.Frame):
                 distributorEmail = distributorRecord.get("distributorEmail", "N/A")
                 distributorPay = distributorRecord.get("distributorPay", 0)
                 distributorRate = distributorRecord.get("distributorRate", 0)
+                currentOrderId = distributorRecord.get("distributorCurrentOrder", "N/A")
             else:
-                messagebox.showerror("Database Error", f"Distributor with ID {userId} not found")
+                messagebox.showerror("Database Error", f"Distributor with Id {userId} not found")
 
             # Filter orders for this distributor
-            distributorOrders = [order for order in orderData if order["distributorID"] == str(userId)]
+            distributorOrders = [order for order in orderData if order["distributorId"] == str(userId)]
 
             # Compute general stats
             totalOrders = len(distributorOrders)
@@ -905,21 +1006,18 @@ class distributorFrame(tk.Frame):
             if not recentOrders:
                 messagebox.showinfo("Recent Order Error", "No recent orders found.")
 
-            # Get current order details (orders with orderStatus <= 7)
-            currentOrders = [
-                order for order in distributorOrders if int(order.get("orderStatus", 999)) <= 6
-            ]
-
-            if currentOrders:
+            # Get current order details, where orderId matches the currentOrderId
+            currentOrder = [order for order in distributorOrders if order["orderId"] == currentOrderId]
+            
+            if currentOrder:
                 # Extract details of the most recent current order
-                currentOrder = sorted(currentOrders, key=lambda x: x["orderDate"])[0]
+                currentOrder = sorted(currentOrder, key=lambda x: x["orderDate"])[0]
                 orderPostCode = currentOrder["orderPostCode"]
                 orderHousesNum = currentOrder["orderHousesNum"]
                 orderDueDate = currentOrder["orderDueDate"]
                 orderStatus = currentOrder["orderStatus"]
             else:
                 orderPostCode = None  # No active orders
-
                 recentOrders = orderResult 
 
         except Exception as e:
@@ -963,20 +1061,21 @@ class distributorFrame(tk.Frame):
             tk.Entry(distributorDetails, textvariable=StringVar(value=orderDueDate), state='readonly').grid(row=3, column=1, padx=10, pady=10)
             tk.Entry(distributorDetails, textvariable=StringVar(value=int(orderHousesNum) * int(distributorRate) / 20), state='readonly').grid(row=4, column=1, padx=10, pady=10)
 
+            # Map Image
+            imagePath = f"./Maps/{orderPostCode}.png"
+
+            image = Image.open(imagePath)
+            smallerImage = image.resize((300, 300))
+            tkImage = ImageTk.PhotoImage(smallerImage)
+
+            label = tk.Label(distributorDetails, image=tkImage)
+            label.grid(row=0, column=5, padx=10, pady=5, rowspan=5, columnspan=2)
+
         # Account Statistics
         ttk.Label(distributorDetails, text="Account Statistics").grid(row=6, column=0, padx=10, pady=10)
         ttk.Label(distributorDetails, text="Total Orders Completed").grid(row=7, column=0, padx=10, pady=10)
         ttk.Label(distributorDetails, text="Total Houses Delivered To").grid(row=8, column=0, padx=10, pady=10)
         ttk.Label(distributorDetails, text="Distributor Pending Pay").grid(row=9, column=0, padx=10, pady=10)
-
-        imagePath = f"./Maps/{orderPostCode}.png"
-
-        image = Image.open(imagePath)
-        smallerImage = image.resize((300, 300))
-        tkImage = ImageTk.PhotoImage(smallerImage)
-
-        label = tk.Label(distributorDetails, image=tkImage)
-        label.grid(row=0, column=5, padx=10, pady=5, rowspan=5, columnspan=2)
 
         # Statistics Fields
         tk.Entry(distributorDetails, textvariable=StringVar(value=totalOrders), state='readonly').grid(row=7, column=1, padx=10, pady=10)
@@ -1008,19 +1107,36 @@ class distributorFrame(tk.Frame):
         ttk.Button(distributorDetails, text="View all Orders", command=lambda: self.viewAllOrders()).grid(row=2, column=4, padx=10, pady=10)
         ttk.Button(distributorDetails, text="Copy Authentication Token", command=lambda: copyAuthKey()).grid(row=3, column=4, padx=10, pady=10)
         ttk.Button(distributorDetails, text="Reset Authentication Token", command=lambda: resetAuthKey()).grid(row=4, column=4, padx=10, pady=10)
+
+    def clearFrame(self):
+        for widget in self.winfo_children():
+            widget.destroy()
+
     # Function Buttons
     def viewAvailableOrders(self):
         self.clearFrame()
         tk.Label(self, text="Available Orders", font=("San Francisco", 24)).pack(pady=10)
         # Treeview widget for displaying data
-        self.tree = ttk.Treeview(self, columns=["orderID", "orderPostCode", "orderHousesNum", "orderDueDate", "orderPayment"], show="headings")
+        self.tree = ttk.Treeview(self, columns=["orderId", "orderPostCode", "orderHousesNum", "orderDueDate", "orderPayment"], show="headings")
         self.tree.pack(fill="both", expand=True)
         # Load data from JSON
         orders = loadJson(f"{dbPath}/order.json")
         # Set up Treeview headings
-        for col in ["orderID", "orderPostCode", "orderHousesNum", "orderDueDate"]:
+        for col in ["orderId", "orderPostCode", "orderHousesNum", "orderDueDate"]:
             self.tree.heading(col, text=col)
-            self.tree.column(col, anchor="w")
+            self.tree.column(col, anchor="w", width=100, stretch=True)
+
+        # Bind configure event to auto-resize columns
+
+        def resize_columns(event):
+            totalWidth = event.width
+            nCols = len(self.tree["columns"])
+            if nCols > 0:
+                colWidth = totalWidth // nCols
+                for col in self.tree["columns"]:
+                    self.tree.column(col, width=colWidth)
+
+        self.tree.bind("<Configure>", resize_columns)
 
         distributorData = loadJson(f"{dbPath}/distributor.json")
         indexData = loadJson(f"{dbPath}/_index.json")
@@ -1028,8 +1144,8 @@ class distributorFrame(tk.Frame):
         distributorRate = distributorData[distributorIndex].get("distributorRate", 5)
         # Insert data into Treeview
         for order in orders:
-            if order["orderStatus"] == "2":
-                values = [order.get(col, "N/A") for col in ["orderID", "orderPostCode", "orderHousesNum", "orderDueDate"]]
+            if order["orderStatus"] == "1":
+                values = [order.get(col, "N/A") for col in ["orderId", "orderPostCode", "orderHousesNum", "orderDueDate"]]
                 orderPayment = int(order["orderHousesNum"]) * int(distributorRate) / 20
                 values.append(orderPayment)
                 self.tree.insert("", "end", values=values)
@@ -1045,12 +1161,12 @@ class distributorFrame(tk.Frame):
         contextMenu = tk.Menu(self.master, tearoff=0)
     
         # Add a command to the menu
-        contextMenu.add_command(label="Accept Order", command=lambda: self.acceptOrder(self.getSelectedID(event)))
+        contextMenu.add_command(label="Accept Order", command=lambda: self.acceptOrder(self.getSelectedId(event)))
 
         # Display the context menu at the mouse position
         contextMenu.post(event.x_root, event.y_root)
 
-    def getSelectedID(self, event):
+    def getSelectedId(self, event):
         row = self.tree.identify("item", event.x, event.y)
         if row:
             primaryKey = self.tree.item(row)["values"][0]
@@ -1058,30 +1174,40 @@ class distributorFrame(tk.Frame):
         else:
             messagebox.showerror("No row selected", "Please select a row.")
 
-    def acceptOrder(self, orderID):
+    def acceptOrder(self, orderId):
         try:
-            path = f"{dbPath}/order.json"
             # Load JSON data
-            orderData = loadJson(path)
-            # Load index
+            orderData = loadJson(f"{dbPath}/order.json")
+            distributorData = loadJson(f"{dbPath}/distributor.json")
             indexData = loadJson(f"{dbPath}/_index.json")
             # Get the index dictionary for the table
             orderIndex = indexData.get("orderIndex", {})
             # Find record's position using the index
-            orderPosition = orderIndex.get(orderID)
+            orderPosition = orderIndex.get(orderId)
             if orderPosition is not None:
                 if orderData[orderPosition]["orderStatus"] == "1":
                     # Mark the record as Accepted
+                    
                     orderData[orderPosition]["orderStatus"] = "2"
                     # Save updated JSON data
-                    writeJson(path, orderData)
+                    
+                    writeJson(f"{dbPath}/order.json", orderData)
+                    # Update the distributor's current order
+                    
+                    distributorData = loadJson(f"{dbPath}/distributor.json")
+                    distributorIndex = indexData.get("distributorIndex", {}).get(str(userId))
+                    distributorData[distributorIndex]["distributorCurrentOrder"] = orderId
+
+                    writeJson(f"{dbPath}/distributor.json", distributorData)
+                    
+
                     #Refresh UI
                     self.populateList()
-                    messagebox.showinfo("Successful Operation", "Order accepted successfully.")
+                    messagebox.showinfo("Successful Operation", "Order accepted successfully")
                 else:
                     messagebox.showerror("Order Error", "Order is already accepted.")
             else:
-                messagebox.showerror("Database Error", f"Order with ID {orderID} not found in index")
+                messagebox.showerror("Database Error", f"Order with Id {orderId} not found in index")
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
 
@@ -1109,7 +1235,7 @@ class distributorFrame(tk.Frame):
                 writeJson(f"{dbPath}/distributor.json", distributorData)
                 messagebox.showinfo("Successful Operation", "Record updated successfully.")
             else:
-                messagebox.showerror("Database Error", f"Distributor with ID {userId} not found")
+                messagebox.showerror("Database Error", f"Distributor with Id {userId} not found")
 
             for field in self.entryFields.values():
                 field.config(state="readonly")

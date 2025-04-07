@@ -1,6 +1,6 @@
 [
   {
-    "adminID": 10,
+    "adminId": 10,
     "adminEmail": "admin@example.com",
     "authenticationKey": "SMJMPTNFE5KDFVDFCVBHSYOKYNNRJOOE",
     "adminPhone": "+441234567890"
