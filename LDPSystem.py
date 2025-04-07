@@ -1,4 +1,5 @@
 # Import libraries
+from turtle import update
 import pyotp
 import time
 import tkinter as tk
@@ -267,9 +268,8 @@ def getHouseholdNetwork(postcode, country="UK"):
 
 # Define global variables
 
-accountType = None
-userId = None
-table = None
+userId = 1001
+table = "distributor"
 dbPath = "./_database"
 indexFile = f"{dbPath}/_index.json"
 
@@ -286,7 +286,7 @@ class Application(tk.Tk):
         self.geometry("1000x600")
         self.resizable(True, True)
         self.currentFrame = None
-        self.switchFrame(adminFrame) 
+        self.switchFrame(distributorFrame) 
 
     def switchFrame(self, frameClass, *args, **kwargs):
         # Destroys current frame
@@ -315,23 +315,21 @@ class Login(tk.Frame):
     # Function to Authenticate User
 
     def authUser(self, enteredId, userCode):        
-        global accountType
         global userId
         global table
         enteredId = enteredId.get("1.0", tk.END).strip()
         userCode = userCode.get("1.0", tk.END).strip()
-        Id = [[adminFrame, distributorFrame, customerFrame],[2, 4, 5],["admin", "distributor", "customer"]]
+        Id = [[2, 4, 5],["admin", "distributor", "customer"]]
         try:
-            arrayPos = Id[1].index(len(enteredId))  # Look for the length in Id[1]
+            arrayPos = Id[0].index(len(enteredId))  # Look for the length in Id[1]
         except ValueError:
             messagebox.showerror("User Error","Not Logged In, Incorrect Id")
-        accountType = Id[0][arrayPos]
         userId = enteredId
-        table = Id[2][arrayPos]
+        table = Id[1][arrayPos]
         correctKey = generateAuthKey(fetchAuthById(enteredId))
         print(correctKey)
         if userCode in correctKey:
-            self.master.switchFrame(accountType)
+            self.master.switchFrame(f"{table} + Frame")
         else:
             messagebox.showerror("User Error", "Not Logged In, Incorrect Code")
             return False
@@ -603,7 +601,6 @@ class adminFrame(tk.Frame):
         self.filters["value"] = self.filterValue.get()
         self.populateList()
     
-    # Add Validation, and proper error messages
     def addRecord(self):
         self.addRecord = tk.Toplevel(self)
         title = "Create" + self.tableName.capitalize() + "Record"
@@ -634,47 +631,63 @@ class adminFrame(tk.Frame):
             text = str(textWidget.get("1.0", "end-1c")).strip()
             result.append(text)
 
-        # Table-specific validation logic
+        # Distributor Validation
         if self.tableName == "distributor":
-            # Example field order: distributorId, distributorFName, distributorLName, distributorEmail, distributorPhone, distributorPay
+            # Load input values
             distributorId, distributorFName, distributorLName, distributorEmail, distributorPhone, distributorPay = result
+            
             if not distributorFName or not distributorLName:
                 messagebox.showerror("Validation Error", "Distributor first and last names cannot be empty.")
                 return
             if "@" not in distributorEmail:
                 messagebox.showerror("Validation Error", "Please enter a valid distributor email.")
                 return
-            # You might also want to validate the phone format or pay values here
+            if not distributorPhone.isdigit():
+                messagebox.showerror("Validation Error", "Distributor phone number must be numeric.")
+                return
+            distributorPay = 0
+
+            result = [distributorId, distributorFName, distributorLName, distributorEmail, distributorPhone, distributorPay]
 
         elif self.tableName == "customer":
-            # Example field order: customerId, customerName, customerEmail, customerPhone, customerNotes, customerRate
+            # Load input values
             customerId, customerName, customerEmail, customerPhone, customerNotes, customerRate = result
+            
             if not customerName:
                 messagebox.showerror("Validation Error", "Customer name cannot be empty.")
                 return
+            
             if "@" not in customerEmail:
                 messagebox.showerror("Validation Error", "Please enter a valid customer email.")
                 return
-            try:
-                rate = float(customerRate)
-            except ValueError:
-                messagebox.showerror("Validation Error", "Customer rate must be numeric.")
+            
+            if not customerPhone.isdigit():
+                messagebox.showerror("Validation Error", "Customer phone number must be numeric.")
                 return
-            # Additional customer validations can go here
+
+            if not customerRate:
+                messagebox.showinfo("Default Rate", "Customer Rate will be defaulted.")
+                customerRate = "5"
+            else:
+                if not customerRate.isdigit():
+                    messagebox.showerror("Validation Error", "Customer rate must be numeric.")
+                    return
+
+            result = [customerId, customerName, customerEmail, customerPhone, customerNotes, customerRate]
 
         elif self.tableName == "admin":
-            # Example field order: adminId, adminEmail, adminPhone
             adminId, adminEmail, adminPhone = result
             if "@" not in adminEmail:
                 messagebox.showerror("Validation Error", "Please enter a valid admin email.")
                 return
-            # Add more admin-specific validations as necessary
 
-        # If validation passes, continue with record creation
+
+        # Create Required Fields
+
+        # Generate auth key
         authKey = pyotp.random_base32()
-        messagebox.showinfo("Authentication Key",
-                            f"This account's authentication key used to log in is {authKey}, we recommend the user to reset this for security reasons!")
-    
+        messagebox.showinfo("Authentication Key", f"This account's authentication key used to log in is {authKey}, we recommend the user to reset this for security reasons!")
+
         # Build the record data dictionary
         recordData = {"authenticationKey": authKey}
         recordData.update({col: value for col, value in zip(self.columnsToDisplay, result)})
@@ -682,7 +695,7 @@ class adminFrame(tk.Frame):
         path = f"{dbPath}/{self.tableName}.json"
         tableData = loadJson(path)
 
-        # Determine a unique Id. If the first result is empty, generate a new Id; otherwise, use the provided one.
+        # Determine a unique Id
         if not result[0]:
             recordData[self.tableName + "Id"] = max([record.get(self.tableName + "Id", 0) for record in tableData], default=0) + 1
         else:
@@ -780,7 +793,6 @@ class customerFrame(tk.Frame):
             # Fetch JSON data
             customerData = loadJson(f"{dbPath}/customer.json")
             orderData = loadJson(f"{dbPath}/order.json")
-            print(orderData)
             indexData = loadJson(f"{dbPath}/_index.json")
 
             # Get customer details
@@ -857,10 +869,9 @@ class customerFrame(tk.Frame):
         self.editButton = ttk.Button(customerDetails, text="Change Account Details", command=lambda: self.changeDetails())
         self.editButton.grid(row=2, column=4, padx=10, pady=10)
         ttk.Button(customerDetails, text="Complete Order Form", command=lambda: self.customerOrderForm()).grid(row=4, column=4, padx=10, pady=10)
-        ttk.Button(customerDetails, text="View All Orders", command=lambda: self.viewAllOrders()).grid(row=6, column=4, padx=10, pady=10)
-        ttk.Button(customerDetails, text="Copy Authentication Token", command=lambda: copyAuthKey()).grid(row=7, column=4, padx=10, pady=10)
-        ttk.Button(customerDetails, text="Reset Authentication Token", command=lambda: resetAuthKey()).grid(row=8, column=4, padx=10, pady=10)
-        ttk.Button(customerDetails, text="View Pending Invoices", command=lambda: self.pendingInvoices()).grid(row=9, column=4, padx=10, pady=10)
+        ttk.Button(customerDetails, text="Copy Authentication Token", command=lambda: copyAuthKey()).grid(row=5, column=4, padx=10, pady=10)
+        ttk.Button(customerDetails, text="Reset Authentication Token", command=lambda: resetAuthKey()).grid(row=6, column=4, padx=10, pady=10)
+        ttk.Button(customerDetails, text="View Pending Invoices", command=lambda: self.pendingInvoices()).grid(row=7, column=4, padx=10, pady=10)
 
     def clearFrame(self):
         for widget in self.winfo_children():
@@ -877,7 +888,16 @@ class customerFrame(tk.Frame):
             # Process data and lock fields again
             updatedData = {label: field.get() for label, field in self.entryFields.items()}
 
-            messagebox.showinfo("Updated Data", f"New Values:\n{updatedData}")
+            # Validate input
+            if not updatedData["customerName"]:
+                messagebox.showerror("Validation Error", "Customer name cannot be empty.")
+                return
+            if "@" not in updatedData["customerEmail"]:
+                messagebox.showerror("Validation Error", "Please enter a valid customer email.")
+                return
+            if not updatedData["customerPhone"].isdigit() or not len(updatedData["customerPhone"]) == 11 or not str(updatedData["customerPhone"][:2]) == "07":
+                messagebox.showerror("Validation Error", "Customer phone number must be numeric in the format of 07XXXXXXXXX")
+                return
 
             customerData = loadJson(f"{dbPath}/customer.json")
             indexData = loadJson(f"{dbPath}/_index.json")
@@ -888,7 +908,7 @@ class customerFrame(tk.Frame):
                 for key, value in updatedData.items():
                     customerRecord[key] = value
                 writeJson(f"{dbPath}/customer.json", customerData)
-                messagebox.showinfo("Successful Operation", "Record updated successfully.")
+                messagebox.showinfo("Updated Data", "Values updated successfully.")
             else:
                 messagebox.showerror("Database Error", f"Customer with Id {userId} not found")
 
@@ -966,6 +986,12 @@ class customerFrame(tk.Frame):
 class distributorFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
+        self.master = master
+
+        self.initHomePage()
+
+
+    def initHomePage(self):
         tk.Label(self, text="Distributor Home Page", font=("San Francisco", 24)).pack(pady=10)
 
         try:
@@ -1002,8 +1028,8 @@ class distributorFrame(tk.Frame):
                 messagebox.showinfo("Recent Order Error", "No recent orders found.")
 
             # Get current order details, where orderId matches the currentOrderId
-            currentOrder = [order for order in distributorOrders if order["orderId"] == currentOrderId]
-            
+            currentOrder = [order for order in distributorOrders if order["orderId"] == int(currentOrderId]
+
             if currentOrder:
                 # Extract details of the most recent current order
                 currentOrder = sorted(currentOrder, key=lambda x: x["orderDate"])[0]
@@ -1096,7 +1122,7 @@ class distributorFrame(tk.Frame):
             tk.Entry(distributorDetails, textvariable=StringVar(value=f"{orderAmount}"), state='readonly').grid(row=3 * i + 3, column=3, padx=10, pady=10)
 
         # Functions
-        ttk.Button(distributorDetails, text="Log Out", command=master.destroy).grid(row=0, column=4, padx=10, pady=10)
+        ttk.Button(distributorDetails, text="Log Out", command=self.master.destroy).grid(row=0, column=4, padx=10, pady=10)
         self.editButton = ttk.Button(distributorDetails, text="Change Account Details", command=lambda: self.changeAccountDetails())
         self.editButton.grid(row=1, column=4, padx=10, pady=10)
         ttk.Button(distributorDetails, text="Completed Order", command=lambda: self.markOrderCompleted()).grid(row=2, column=4, padx=10, pady=10)
@@ -1106,6 +1132,10 @@ class distributorFrame(tk.Frame):
     def clearFrame(self):
         for widget in self.winfo_children():
             widget.destroy()
+
+    def backToHome(self):
+        self.clearFrame()
+        self.initHomePage()
 
     def viewAvailableOrders(self):
         
@@ -1143,9 +1173,10 @@ class distributorFrame(tk.Frame):
         distributorIndex = indexData.get("distributorIndex", {}).get(str(userId))
         distributorRate = distributorData[distributorIndex].get("distributorRate", 5)
         
-        # Filter for only OrderStatus 1
-        filteredOrders = [order for order in orders if order["orderStatus"] == "1"]
+        # Filter for only OrderStatus Paid, to be Devlivered
+        filteredOrders = [order for order in orders if order["orderStatus"] == "Paid, to be Devlivered"]
 
+        print(filteredOrders)
         # Sort orders by orderDueDate
         sortedOrders = sorted(filteredOrders, key=lambda x: x["orderDueDate"])
         
@@ -1160,7 +1191,7 @@ class distributorFrame(tk.Frame):
         buttonsFrame.pack(pady=10)
 
         self.tree.bind("<Button-3>", self.rightClick)
-        ttk.Button(buttonsFrame, text="Close", command=lambda: self.clearFrame()).grid(row=0, column=5, padx=10, pady=5)
+        ttk.Button(buttonsFrame, text="Close", command=lambda: self.backToHome()).grid(row=0, column=5, padx=10, pady=5)
 
     def rightClick(self, event):
         # Create a context menu
@@ -1195,6 +1226,7 @@ class distributorFrame(tk.Frame):
                     # Mark the record as Accepted
                     
                     orderData[orderPosition]["orderStatus"] = "Out for Delivery"
+                    orderData[orderPosition]["distributorId"] = str(userId)
                     # Save updated JSON data
                     
                     writeJson(f"{dbPath}/order.json", orderData)
@@ -1206,9 +1238,6 @@ class distributorFrame(tk.Frame):
 
                     writeJson(f"{dbPath}/distributor.json", distributorData)
                     
-
-                    #Refresh UI
-                    self.populateList()
                     messagebox.showinfo("Successful Operation", "Order accepted successfully")
                 else:
                     messagebox.showerror("Order Error", "Order is already accepted.")
@@ -1228,7 +1257,17 @@ class distributorFrame(tk.Frame):
             # Process data and lock fields again
             updatedData = {label: field.get() for label, field in self.entryFields.items()}
 
-            messagebox.showinfo("Updated Data", f"New Values:\n{updatedData}")
+            # Validate input
+            if not updatedData["distributorLName"]:
+                messagebox.showerror("Validation Error", "Distributor name cannot be empty.")
+                return
+            if not updatedData["distributorPhone"].isdigit() or not len(updatedData["distributorPhone"]) == 11 or not str(updatedData["distributorPhone"][:2]) == "07":
+                messagebox.showerror("Validation Error", "Distributor phone number must be numeric in the format of 07XXXXXXXXX")
+                return
+            if "@" not in updatedData["distributorEmail"]:
+                messagebox.showerror("Validation Error", "Please enter a valid distributor email.")
+                return
+
 
             distributorData = loadJson(f"{dbPath}/distributor.json")
             indexData = loadJson(f"{dbPath}/_index.json")
@@ -1239,7 +1278,7 @@ class distributorFrame(tk.Frame):
                 for key, value in updatedData.items():
                     distributorRecord[key] = value
                 writeJson(f"{dbPath}/distributor.json", distributorData)
-                messagebox.showinfo("Successful Operation", "Record updated successfully.")
+                messagebox.showinfo("Updated Data", "Values updated successfully.")
             else:
                 messagebox.showerror("Database Error", f"Distributor with Id {userId} not found")
 

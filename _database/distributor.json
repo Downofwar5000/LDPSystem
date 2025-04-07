@@ -1,13 +1,13 @@
 [
-  {
-    "distributorId": 1001,
-    "distributorEmail": "distributor@example.com",
-    "authenticationKey": "SMJMPTNFE5KDFVDFCVBHSYOKYNNRJOOE",
-    "distributorPhone": "+441234567892",
-    "distributorPay": "1200",
-    "distributorCurrentOrder": None,
-    "distributorRate": "5",
-    "distributorFName": "Alice",
-    "distributorLName": "Smiths"
-  }
+    {
+        "distributorId": 1001,
+        "distributorEmail": "distributor@example.com",
+        "authenticationKey": "E7FIYOJXY4CWXZTZ2NEMD2OMCBDIFBW7",
+        "distributorPhone": "07123456789",
+        "distributorPay": "1200",
+        "distributorCurrentOrder": "100004",
+        "distributorRate": "5",
+        "distributorFName": "Alice",
+        "distributorLName": "Smiths"
+    }
 ]

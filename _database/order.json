@@ -13,7 +13,7 @@
     },
     {
         "orderId": 100002,
-        "orderStatus": "7",
+        "orderStatus": "Completed",
         "orderDate": "28022025",
         "invoiceAmount": "150",
         "orderDueDate": "",
@@ -30,20 +30,20 @@
         "orderMap": "./Maps/CF24 0LJ.png",
         "orderDueDate": "20032025",
         "orderPostCode": "CF24 0LJ",
-        "orderHousesNum": "",
+        "orderHousesNum": "200",
         "distributorId": "",
         "customerId": ""
     },
     {
         "orderId": 100004,
-        "orderStatus": "1",
+        "orderStatus": "Out for Delivery",
         "orderDate": "10032025",
         "invoiceAmount": "150",
         "orderMap": "./Maps/CF3 1RY.png",
-        "orderHousesNum": "",
+        "orderHousesNum": "200",
         "orderDueDate": "20202025",
         "orderPostCode": "CF3 1RY",
-        "distributorId": "",
+        "distributorId": "1001",
         "customerId": ""
     },
     {
@@ -55,6 +55,7 @@
         "orderDueDate": "11112222",
         "orderPostCode": "1",
         "distributorId": "1001",
-        "customerId": "10001"
+        "customerId": "10001",
+        "orderHousesNum": "1"
     }
 ]
