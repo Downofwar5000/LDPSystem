@@ -47,11 +47,10 @@ def submit(self, orderFields, result):
     # Load JSON data
     orderData = loadJson(f"{dbPath}/order.json")
     indexData = loadJson(f"{dbPath}/_index.json")
-    distributorData = loadJson(f"{dbPath}/distributor.json")
 
     # Generate necessary fields
     date = str(time.strftime("%d%m%Y"))
-    orderStatus = 0
+    orderStatus = "Recieved, Awaiting Payment"
 
     # Generate new unique Order Id
     orderId = max([record.get("orderId", 0) for record in orderData], default=0) + 1
@@ -63,11 +62,12 @@ def submit(self, orderFields, result):
     # Verification
 
 
-    # Ensure all fields except distributor are filled
-        
-    if not result[0] or not result[1] or not result[3]:
-        messagebox.showerror("Missing Fields", "Please fill in all required fields.")
-        return
+    # Ensure all fields are filled
+
+    for field in orderFields:
+        if not result[orderFields.index(field)]:
+            messagebox.showerror("Missing Fields", f"Please fill in all fields. Missing: {field}")
+            return
 
     # Ensure fields are filled with acceptable values
 
@@ -131,12 +131,6 @@ def submit(self, orderFields, result):
     # Append order to the database
     orderData.append(newOrder)
     writeJson(f"{dbPath}/order.json", orderData)
-
-    # Assign distributor to the new order
-    if result[2]:
-        distributorIndex = indexData.get("distributorIndex", {}).get(result[2])
-        distributorRecord = distributorData[distributorIndex]
-        distributorRecord["currentOrder"] = orderId
 
     # Update the index and save it
     buildIndex()
@@ -518,9 +512,9 @@ class adminFrame(tk.Frame):
             # Find record's position using the index
             recordPosition = orderIndex.get(record)
             if recordPosition is not None:
-                if orderData[recordPosition]["orderStatus"] == "0":
+                if orderData[recordPosition]["orderStatus"] == "Recieved, Awaiting Payment":
                     # Mark the record as paid
-                    orderData[recordPosition]["orderStatus"] = "1"
+                    orderData[recordPosition]["orderStatus"] = "Paid, to be Devlivered"
                   
                     messagebox.showinfo("Successful Operation", "Record marked as paid successfully")
 
@@ -531,6 +525,7 @@ class adminFrame(tk.Frame):
                     for distributor in distributorData:
                         if distributor.get("currentOrder") == 0:
                             orderData[recordPosition]["distributorId"] = distributor.get("distributorId")
+                            orderData[recordPosition]["orderStatus"] = "Out for Delivery"
                             break
                     else:
                         messagebox.showinfo("No Distributor Available", "No available distributors at the moment, order will be placed in queue.")
@@ -709,7 +704,7 @@ class adminFrame(tk.Frame):
         orderForm = tk.Frame(self)
         orderForm.pack(pady=20)
         # Define order rows
-        orderFields = ["orderDueDate", "orderPostCode", "distributorId", "customerId"]
+        orderFields = ["orderDueDate", "orderPostCode", "customerId"]
         # Create dictionary for Text fields
         self.orderRow = {}
         # Create form by itereating betweeen each row name
@@ -911,7 +906,7 @@ class customerFrame(tk.Frame):
         orderForm = tk.Frame(self.customerOrderForm)
         orderForm.pack(pady=20)
         # Define order rows
-        orderFields = ["orderDueDate", "orderPostCode", "orderHousesNum"]
+        orderFields = ["orderDueDate", "orderPostCode"]
         # Create dictionary for Text fields
         self.orderRow = {}
         # Create form by itereating betweeen each row name
@@ -1104,7 +1099,7 @@ class distributorFrame(tk.Frame):
         ttk.Button(distributorDetails, text="Log Out", command=master.destroy).grid(row=0, column=4, padx=10, pady=10)
         self.editButton = ttk.Button(distributorDetails, text="Change Account Details", command=lambda: self.changeAccountDetails())
         self.editButton.grid(row=1, column=4, padx=10, pady=10)
-        ttk.Button(distributorDetails, text="View all Orders", command=lambda: self.viewAllOrders()).grid(row=2, column=4, padx=10, pady=10)
+        ttk.Button(distributorDetails, text="Completed Order", command=lambda: self.markOrderCompleted()).grid(row=2, column=4, padx=10, pady=10)
         ttk.Button(distributorDetails, text="Copy Authentication Token", command=lambda: copyAuthKey()).grid(row=3, column=4, padx=10, pady=10)
         ttk.Button(distributorDetails, text="Reset Authentication Token", command=lambda: resetAuthKey()).grid(row=4, column=4, padx=10, pady=10)
 
@@ -1112,15 +1107,19 @@ class distributorFrame(tk.Frame):
         for widget in self.winfo_children():
             widget.destroy()
 
-    # Function Buttons
     def viewAvailableOrders(self):
+        
         self.clearFrame()
+        
         tk.Label(self, text="Available Orders", font=("San Francisco", 24)).pack(pady=10)
+        
         # Treeview widget for displaying data
         self.tree = ttk.Treeview(self, columns=["orderId", "orderPostCode", "orderHousesNum", "orderDueDate", "orderPayment"], show="headings")
         self.tree.pack(fill="both", expand=True)
+        
         # Load data from JSON
         orders = loadJson(f"{dbPath}/order.json")
+        
         # Set up Treeview headings
         for col in ["orderId", "orderPostCode", "orderHousesNum", "orderDueDate"]:
             self.tree.heading(col, text=col)
@@ -1138,22 +1137,29 @@ class distributorFrame(tk.Frame):
 
         self.tree.bind("<Configure>", resize_columns)
 
+        # Get distributorRate
         distributorData = loadJson(f"{dbPath}/distributor.json")
         indexData = loadJson(f"{dbPath}/_index.json")
         distributorIndex = indexData.get("distributorIndex", {}).get(str(userId))
         distributorRate = distributorData[distributorIndex].get("distributorRate", 5)
+        
+        # Filter for only OrderStatus 1
+        filteredOrders = [order for order in orders if order["orderStatus"] == "1"]
+
+        # Sort orders by orderDueDate
+        sortedOrders = sorted(filteredOrders, key=lambda x: x["orderDueDate"])
+        
         # Insert data into Treeview
-        for order in orders:
-            if order["orderStatus"] == "1":
-                values = [order.get(col, "N/A") for col in ["orderId", "orderPostCode", "orderHousesNum", "orderDueDate"]]
-                orderPayment = int(order["orderHousesNum"]) * int(distributorRate) / 20
-                values.append(orderPayment)
-                self.tree.insert("", "end", values=values)
+        for order in sortedOrders:
+            values = [order.get(col, "N/A") for col in ["orderId", "orderPostCode", "orderHousesNum", "orderDueDate"]]
+            orderPayment = int(order["orderHousesNum"]) * int(distributorRate) / 20
+            values.append(orderPayment)
+            self.tree.insert("", "end", values=values)
+        
         buttonsFrame = tk.Frame(self)
         buttonsFrame.pack(pady=10)
 
         self.tree.bind("<Button-3>", self.rightClick)
-
         ttk.Button(buttonsFrame, text="Close", command=lambda: self.clearFrame()).grid(row=0, column=5, padx=10, pady=5)
 
     def rightClick(self, event):
@@ -1185,10 +1191,10 @@ class distributorFrame(tk.Frame):
             # Find record's position using the index
             orderPosition = orderIndex.get(orderId)
             if orderPosition is not None:
-                if orderData[orderPosition]["orderStatus"] == "1":
+                if orderData[orderPosition]["orderStatus"] == "Paid, to be Devlivered":
                     # Mark the record as Accepted
                     
-                    orderData[orderPosition]["orderStatus"] = "2"
+                    orderData[orderPosition]["orderStatus"] = "Out for Delivery"
                     # Save updated JSON data
                     
                     writeJson(f"{dbPath}/order.json", orderData)
@@ -1241,6 +1247,40 @@ class distributorFrame(tk.Frame):
                 field.config(state="readonly")
 
             self.editButton.config(text="Change Account Details")
+
+    def markOrderCompleted(self):
+        # Get current orderId
+        distributorData = loadJson(f"{dbPath}/distributor.json")
+        indexData = loadJson(f"{dbPath}/_index.json")
+        distributorIndex = indexData.get("distributorIndex", {}).get(str(userId))
+        currentOrderId = distributorData[distributorIndex].get("distributorCurrentOrder", "N/A")
+        if currentOrderId == None:
+            messagebox.showerror("No Order", "No current order found.")
+            return
+        else:
+            # Load JSON data
+            orderData = loadJson(f"{dbPath}/order.json")
+            orderIndex = indexData.get("orderIndex", {})
+            
+            # Find record's position using the index
+            orderPosition = orderIndex.get(currentOrderId)
+            
+            if orderPosition is not None:
+                # Mark the record as Completed
+                orderData[orderPosition]["orderStatus"] = "Order Completed"
+                
+                # Update the distributor's current order
+                distributorData[distributorIndex]["distributorCurrentOrder"] = None
+
+                # Save updated JSON data
+                writeJson(f"{dbPath}/order.json", orderData)
+                writeJson(f"{dbPath}/distributor.json", distributorData)
+                
+                messagebox.showinfo("Successful Operation", "Order marked as completed successfully.")
+
+                buildIndex()
+            else:
+                messagebox.showerror("Database Error", f"Order with Id {currentOrderId} not found in index")
 
 
 # Main Running Loop
