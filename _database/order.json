@@ -7,13 +7,13 @@
         "orderHousesNum": "234",
         "orderMap": "map_link_here",
         "distributorId": "1001",
-        "orderStatus": "0",
+        "orderStatus": "Recieved, Awaiting Payment",
         "customerId": "10002",
         "invoiceAmount": "250.7"
     },
     {
         "orderId": 100002,
-        "orderStatus": "Completed",
+        "orderStatus": "Order Completed",
         "orderDate": "28022025",
         "invoiceAmount": "150",
         "orderDueDate": "",
@@ -24,7 +24,7 @@
     },
     {
         "orderId": 100003,
-        "orderStatus": 0,
+        "orderStatus": "Recieved, Awaiting Payment",
         "orderDate": "10032025",
         "invoiceAmount": "150",
         "orderMap": "./Maps/CF24 0LJ.png",
@@ -36,7 +36,7 @@
     },
     {
         "orderId": 100004,
-        "orderStatus": "Out for Delivery",
+        "orderStatus": "Order Completed",
         "orderDate": "10032025",
         "invoiceAmount": "150",
         "orderMap": "./Maps/CF3 1RY.png",
@@ -48,7 +48,7 @@
     },
     {
         "orderId": 100007,
-        "orderStatus": "0",
+        "orderStatus": "Recieved, Awaiting Payment",
         "orderDate": "11032025",
         "invoiceAmount": "150",
         "orderMap": "./Maps/1.png",
@@ -57,5 +57,17 @@
         "distributorId": "1001",
         "customerId": "10001",
         "orderHousesNum": "1"
+    },
+    {
+        "orderId": 100008,
+        "orderStatus": "Recieved, Awaiting Payment",
+        "orderDate": "08042025",
+        "invoiceAmount": "12.15",
+        "orderMap": "./Maps/3.png",
+        "orderHousesNum": "27",
+        "orderDueDate": "11112222",
+      "orderPostCode": "3",
+      "customerId": "10001",
+      "distributorId": null
     }
 ]

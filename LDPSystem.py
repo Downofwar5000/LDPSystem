@@ -56,11 +56,7 @@ def submit(self, orderFields, result):
     # Generate new unique Order Id
     orderId = max([record.get("orderId", 0) for record in orderData], default=0) + 1
 
-    # Extract customerId from the input
-    customerTextWidget = self.orderRow.get("customerId")
-    customerId = customerTextWidget.get("1.0", "end-1c").strip()
-
-    # Verification
+    # Validation
 
 
     # Ensure all fields are filled
@@ -71,7 +67,7 @@ def submit(self, orderFields, result):
             return
 
     # Ensure fields are filled with acceptable values
-
+    print(result)
 
     # Check if the due date is in the future
 
@@ -90,11 +86,15 @@ def submit(self, orderFields, result):
 
     # Check if the customerId is correct
 
-    if not any(result[3] in record for record in loadJson(f"{dbPath}/customer.json")):
-        messagebox.showerror("Invalid Customer", "Please enter a valid customer Id.")
+    for record in loadJson(f"{dbPath}/customer.json"):
+        if result[2] == str(record["customerId"]):
+            customerRecord = record
+            break
+    else:
+        messagebox.showerror("Invalid Customer", "Please enter a valid customer ID.")
         return
 
-    # Check if the postcode exists
+    # Check if the postcode exists and generate map
     try:
         HousesNum = getHouseholdNetwork(result[1])
     except ValueError:
@@ -103,17 +103,12 @@ def submit(self, orderFields, result):
 
     # Create dyanimc variables for the order
 
-
-    # Generate node map for the order
-    
-    HousesNum = getHouseholdNetwork(result[1])
-
     # Calculate cost based on customer rate
 
     customerData = loadJson(f"{dbPath}/customer.json")
-    customerIndex = indexData.get("customerIndex", {}).get(customerId)
+    customerIndex = indexData.get("customerIndex", {}).get(result[2])
     customerRecord = customerData[customerIndex]
-    cost = customerRecord.get("customerRate", 0) * HousesNum / 10
+    cost = float(customerRecord.get("customerRate", 0)) * HousesNum / 10
 
     # Fill in the new order details
     newOrder = {
@@ -122,7 +117,9 @@ def submit(self, orderFields, result):
         "orderDate": str(date),
         "invoiceAmount": str(cost),
         "orderMap": f"./Maps/{result[1]}.png",
-        "orderHousesNum": str(HousesNum)
+        "orderHousesNum": str(HousesNum),
+        "customerId": str(result[2]),
+        "distributor": None
     }
 
     # Add dynamic fields 
@@ -268,8 +265,8 @@ def getHouseholdNetwork(postcode, country="UK"):
 
 # Define global variables
 
-userId = 1001
-table = "distributor"
+userId = 10001
+table = "customer"
 dbPath = "./_database"
 indexFile = f"{dbPath}/_index.json"
 
@@ -283,10 +280,10 @@ class Application(tk.Tk):
         super().__init__()
         buildIndex()
         self.title("LDP System")
-        self.geometry("1000x600")
+        self.geometry("1200x600")
         self.resizable(True, True)
         self.currentFrame = None
-        self.switchFrame(distributorFrame) 
+        self.switchFrame(customerFrame) 
 
     def switchFrame(self, frameClass, *args, **kwargs):
         # Destroys current frame
@@ -735,7 +732,7 @@ class adminFrame(tk.Frame):
     def orderSubmit(self, orderFields):
         # Get order details from the text fields
         result = [str(orderRow.get("1.0", "end-1c")) for col, orderRow in self.orderRow.items()]
-
+        print(result)
         submit(self, orderFields, result)
 
         # Switch frame after submission
@@ -920,7 +917,7 @@ class customerFrame(tk.Frame):
     def customerOrderForm(self):
         self.customerOrderForm = tk.Toplevel(self)
         self.customerOrderForm.title("Order Form")
-        self.customerOrderForm.geometry("400x700")
+        self.customerOrderForm.geometry("400x400")
         tk.Label(self.customerOrderForm, text="Customer Order Form", font=("San Francisco", 24)).pack(pady=10)
 
         orderForm = tk.Frame(self.customerOrderForm)
@@ -945,6 +942,9 @@ class customerFrame(tk.Frame):
     def submit(self, orderFields):
         # Get order details from the text fields
         result = [str(orderRow.get("1.0", "end-1c")) for col, orderRow in self.orderRow.items()]
+
+        # Add customerId to the result
+        result.append(str(userId))
 
         submit(self, orderFields, result)
 
@@ -990,7 +990,6 @@ class distributorFrame(tk.Frame):
 
         self.initHomePage()
 
-
     def initHomePage(self):
         tk.Label(self, text="Distributor Home Page", font=("San Francisco", 24)).pack(pady=10)
 
@@ -1028,9 +1027,9 @@ class distributorFrame(tk.Frame):
                 messagebox.showinfo("Recent Order Error", "No recent orders found.")
 
             # Get current order details, where orderId matches the currentOrderId
-            currentOrder = [order for order in distributorOrders if order["orderId"] == int(currentOrderId]
-
-            if currentOrder:
+            if not currentOrderId == None:
+                currentOrder = [order for order in distributorOrders if order["orderId"] == int(currentOrderId)]
+                
                 # Extract details of the most recent current order
                 currentOrder = sorted(currentOrder, key=lambda x: x["orderDate"])[0]
                 orderPostCode = currentOrder["orderPostCode"]
@@ -1321,9 +1320,12 @@ class distributorFrame(tk.Frame):
             else:
                 messagebox.showerror("Database Error", f"Order with Id {currentOrderId} not found in index")
 
+        self.initHomePage()
+
 
 # Main Running Loop
 
 if __name__ == "__main__":
+    buildIndex()
     app = Application()
     app.mainloop()
