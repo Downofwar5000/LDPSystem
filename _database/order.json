@@ -7,7 +7,7 @@
         "orderHousesNum": "234",
         "orderMap": "map_link_here",
         "distributorId": "1001",
-        "orderStatus": "Recieved, Awaiting Payment",
+        "orderStatus": "Out for Delivery",
         "customerId": "10002",
         "invoiceAmount": "250.7"
     },
@@ -19,20 +19,20 @@
         "orderDueDate": "",
         "orderPostCode": "",
         "orderHousesNum": "600",
-        "distributorId": "1001",
-        "customerId": "10001"
+        "distributorId": null,
+        "customerId": "10002"
     },
     {
         "orderId": 100003,
-        "orderStatus": "Recieved, Awaiting Payment",
+        "orderStatus": "Order Completed",
         "orderDate": "10032025",
         "invoiceAmount": "150",
         "orderMap": "./Maps/CF24 0LJ.png",
         "orderDueDate": "20032025",
         "orderPostCode": "CF24 0LJ",
         "orderHousesNum": "200",
-        "distributorId": "",
-        "customerId": ""
+        "distributorId": "1001",
+        "customerId": "10002"
     },
     {
         "orderId": 100004,
@@ -44,30 +44,30 @@
         "orderDueDate": "20202025",
         "orderPostCode": "CF3 1RY",
         "distributorId": "1001",
-        "customerId": ""
+        "customerId": "10002"
     },
     {
         "orderId": 100007,
-        "orderStatus": "Recieved, Awaiting Payment",
+        "orderStatus": "Out for Delivery",
         "orderDate": "11032025",
         "invoiceAmount": "150",
         "orderMap": "./Maps/1.png",
         "orderDueDate": "11112222",
         "orderPostCode": "1",
-        "distributorId": "1001",
+        "distributorId": 1002,
         "customerId": "10001",
         "orderHousesNum": "1"
     },
     {
         "orderId": 100008,
-        "orderStatus": "Recieved, Awaiting Payment",
+        "orderStatus": "Paid, to be Devlivered",
         "orderDate": "08042025",
         "invoiceAmount": "12.15",
         "orderMap": "./Maps/3.png",
         "orderHousesNum": "27",
         "orderDueDate": "11112222",
-      "orderPostCode": "3",
-      "customerId": "10001",
-      "distributorId": null
+        "orderPostCode": "3",
+        "customerId": "10001",
+        "distributorId": null
     }
 ]

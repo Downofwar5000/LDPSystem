@@ -3,7 +3,7 @@ from turtle import update
 import pyotp
 import time
 import tkinter as tk
-from tkinter import NSEW, ttk, messagebox, StringVar
+from tkinter import NSEW, messagebox, StringVar
 import json
 import osmnx as ox
 import geopandas as gpd
@@ -14,6 +14,8 @@ from geopy.geocoders import Nominatim
 from scipy.spatial.distance import euclidean
 from shapely.geometry import Point, LineString
 from PIL import Image, ImageTk
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 
 
 # Functions - Database
@@ -137,10 +139,17 @@ def submit(self, orderFields, result):
     messagebox.showinfo("Successful Operation", "Record created successfully.")
     messagebox.showinfo("Order Cost", f"The cost for this order will be \u00A3 {cost}")
 
+def backToHome(self):
+    clearFrame(self)
+    self.initHomePage()
+
+def clearFrame(self):
+    for widget in self.winfo_children():
+        widget.destroy()
 
 # Functions - Authentication
 
-def copyAuthKey():
+def copyAuthKey(self):
     # Copies the authentication key for the current user
     authKey = fetchAuthById(userId)
     app.clipboard_clear()
@@ -148,7 +157,9 @@ def copyAuthKey():
     app.update()  # now it stays on the clipboard after the window is closed
     messagebox.showinfo("Copy Authentication Token", "Authentication key copied to clipboard.")
 
-def resetAuthKey():
+    backToHome(self)
+
+def resetAuthKey(self):
     # Resets the authentication key for the current user
     authKey = pyotp.random_base32()
     tableFile = f"{dbPath}/{table}.json"
@@ -164,7 +175,7 @@ def resetAuthKey():
     writeJson(tableFile, tableData)
 
     messagebox.showinfo("Reset Authentication Token", f"New authentication key generated: {authKey}")
-    copyAuthKey()
+    copyAuthKey(self)
 
 def fetchAuthById(enteredId):
     # Fetches the authentication key for a given user Id
@@ -265,8 +276,8 @@ def getHouseholdNetwork(postcode, country="UK"):
 
 # Define global variables
 
-userId = 10001
-table = "customer"
+userId = 1001
+table = "distributor"
 dbPath = "./_database"
 indexFile = f"{dbPath}/_index.json"
 
@@ -280,10 +291,17 @@ class Application(tk.Tk):
         super().__init__()
         buildIndex()
         self.title("LDP System")
-        self.geometry("1200x600")
+        self.geometry("1000x600")
+
+        # Set up ttk theme and styling
+        style = ttk.Style()
+        style.theme_use("vapor")
+
         self.resizable(True, True)
         self.currentFrame = None
-        self.switchFrame(customerFrame) 
+        self.switchFrame(distributorFrame) 
+
+
 
     def switchFrame(self, frameClass, *args, **kwargs):
         # Destroys current frame
@@ -307,7 +325,7 @@ class Login(tk.Frame):
         tk.Label(Login, text="6 Digit Authentication Code", borderwidth=2, padx=10, pady=10).grid(row=1, column=0)
         userCode = tk.Text(Login, height=1, width=6, wrap="word", borderwidth=2)
         userCode.grid(row=1, column=1)
-        ttk.Button(Login, text="Login", command=lambda: self.authUser(enteredId, userCode)).grid(row=3, column=0, padx=10, pady=10)
+        ttk.Button(Login, text="Login", command=lambda: self.authUser(enteredId, userCode), bootstyle="Success").grid(row=3, column=0, padx=10, pady=10)
 
     # Function to Authenticate User
 
@@ -349,12 +367,12 @@ class adminFrame(tk.Frame):
         # Hex grid layout
         buttonsFrame = tk.Frame(self)
         buttonsFrame.pack(pady=20) 
-        ttk.Button(buttonsFrame, text="View Orders", command=lambda: self.switchToViewPage("order")).grid(row=0, column=0, padx=10, pady=10)
-        ttk.Button(buttonsFrame, text="View Customers", command=lambda: self.switchToViewPage("customer")).grid(row=1, column=0, padx=10, pady=10)
-        ttk.Button(buttonsFrame, text="View Distributors", command=lambda: self.switchToViewPage("distributor")).grid(row=2, column=0, padx=10, pady=10)
-        ttk.Button(buttonsFrame, text="Log Out", command=self.master.destroy).grid(row=0, column=1, padx=10, pady=10)
-        ttk.Button(buttonsFrame, text="Customer Order Form", command=self.customerOrderForm).grid(row=1, column=1, padx=10, pady=10)
-        ttk.Button(buttonsFrame, text="Distributor Pay List", command=self.distributorPayList).grid(row=2, column=1, padx=10, pady=10)
+        ttk.Button(buttonsFrame, text="View Orders", command=lambda: self.switchToViewPage("order"), bootstyle="primary").grid(row=0, column=0, padx=10, pady=10)
+        ttk.Button(buttonsFrame, text="View Customers", command=lambda: self.switchToViewPage("customer"), bootstyle="primary").grid(row=1, column=0, padx=10, pady=10)
+        ttk.Button(buttonsFrame, text="View Distributors", command=lambda: self.switchToViewPage("distributor"), bootstyle="primary").grid(row=2, column=0, padx=10, pady=10)
+        ttk.Button(buttonsFrame, text="Log Out", command=self.master.destroy, bootstyle="danger").grid(row=0, column=1, padx=10, pady=10)
+        ttk.Button(buttonsFrame, text="Customer Order Form", command=self.customerOrderForm, bootstyle="secondary").grid(row=1, column=1, padx=10, pady=10)
+        ttk.Button(buttonsFrame, text="Distributor Pay List", command=self.distributorPayList, bootstyle="primary").grid(row=2, column=1, padx=10, pady=10)
 
     def switchToViewPage(self, tableName):
         self.tableName = tableName
@@ -387,12 +405,8 @@ class adminFrame(tk.Frame):
                                      "distributorCurrentOrder",
                                      "distributorRate"
                                      ]
-        self.clearFrame()
+        clearFrame(self)
         self.viewPage()
-
-    def clearFrame(self):
-        for widget in self.winfo_children():
-            widget.destroy()
 
     def viewPage(self):
         tk.Label(self, text=f"View {self.tableName.capitalize()}", font=("San Francisco", 20)).pack(pady=10)
@@ -436,11 +450,11 @@ class adminFrame(tk.Frame):
         self.filterValue.grid(row=0, column=3, padx=10, pady=5)
 
         self.filterCategory.bind("<<ComboboxSelected>>", self.updateFilterValues)
-        ttk.Button(filterFrame, text="Apply Filter", command=self.applyFilter).grid(row=0, column=4, padx=10, pady=5)
-        ttk.Button(filterFrame, text="Back to Home", command=self.backToHome).grid(row=0, column=5, padx=10, pady=5)
+        ttk.Button(filterFrame, text="Apply Filter", command=self.applyFilter, bootstyle="info").grid(row=0, column=4, padx=10, pady=5)
+        ttk.Button(filterFrame, text="Back to Home", command=lambda: backToHome(self), bootstyle="danger").grid(row=0, column=5, padx=10, pady=5)
 
         if not self.tableName == "order":
-            ttk.Button(self, text="Add Record", command=self.addRecord).pack(pady=10)
+            ttk.Button(self, text="Add Record", command=self.addRecord, bootstyle="success").pack(pady=10)
 
     def rightClick(self, event):
         # Create a context menu
@@ -515,22 +529,22 @@ class adminFrame(tk.Frame):
 
                     # Attempt to assign distributor to paid order
                     distributorData = loadJson(f"{dbPath}/distributor.json")
-                    indexData = loadJson(f"{dbPath}/_index.json")
+
 
                     for distributor in distributorData:
-                        if distributor.get("currentOrder") == 0:
-                            orderData[recordPosition]["distributorId"] = distributor.get("distributorId")
+                        if distributor["distributorCurrentOrder"] == None:
+                            orderData[recordPosition]["distributorId"] = distributor["distributorId"]
                             orderData[recordPosition]["orderStatus"] = "Out for Delivery"
+                            
+                            distributor["distributorCurrentOrder"] = orderData[recordPosition]["orderId"]
+                            
+                            messagebox.showinfo("Distributor Assinged", "A distributor has been assigned, the order should be delivered soon")
+                            
                             break
                     else:
                         messagebox.showinfo("No Distributor Available", "No available distributors at the moment, order will be placed in queue.")
                         orderData[recordPosition]["distributorId"] = None
-
-                    distributorIndex = indexData.get("distributorIndex", {})
-                    distributorRecord = distributorIndex.get(orderData[recordPosition]["distributorId"])
                     
-                    distributorRecord["currentOrder"] = orderData[recordPosition]["orderId"]
-
                     # Save updated JSON data
                     writeJson(f"{dbPath}/order.json", orderData)
                     writeJson(f"{dbPath}/distributor.json", distributorData)
@@ -619,7 +633,7 @@ class adminFrame(tk.Frame):
             newRecord = tk.Text(self.addRecord, height = 1, width = 25)
             newRecord.grid(column = 1, padx = 5, pady = 5)
             self.newRecord[col] = newRecord
-        ttk.Button(self.addRecord, text="Submit", command=self.submit).grid()
+        ttk.Button(self.addRecord, text="Submit", command=self.submit, bootstyle="success").grid()
 
     def submit(self):
         result = []
@@ -708,7 +722,7 @@ class adminFrame(tk.Frame):
         self.populateList()
 
     def customerOrderForm(self):
-        self.clearFrame()
+        clearFrame(self)
         tk.Label(self, text="Customer Order Form", font=("San Francisco", 24)).pack(pady=10)
 
         orderForm = tk.Frame(self)
@@ -726,8 +740,8 @@ class adminFrame(tk.Frame):
             orderRow = tk.Text(orderForm, height = 1, width = 25)
             orderRow.grid(column=1)
             self.orderRow[row] = orderRow
-        ttk.Button(orderForm, text="Submit", command=lambda: self.orderSubmit(orderFields)).grid(padx=10, pady=5)
-        ttk.Button(orderForm, text="Back to Home", command=lambda: self.backToHome()).grid(padx=10, pady=5)
+        ttk.Button(orderForm, text="Submit", command=lambda: self.orderSubmit(orderFields), bootstyle="success").grid(padx=10, pady=5)
+        ttk.Button(orderForm, text="Back to Home", command=lambda: backToHome(self), bootstyle="danger").grid(padx=10, pady=5)
 
     def orderSubmit(self, orderFields):
         # Get order details from the text fields
@@ -736,10 +750,10 @@ class adminFrame(tk.Frame):
         submit(self, orderFields, result)
 
         # Switch frame after submission
-        self.backToHome()
+        backToHome(self)
 
     def distributorPayList(self):
-        self.clearFrame()
+        clearFrame(self)
         tk.Label(self, text="Distributor Pay List", font=("San Francisco", 24)).pack(pady=10)
 
         # Treeview widget for displaying data
@@ -762,8 +776,8 @@ class adminFrame(tk.Frame):
         buttonsFrame = tk.Frame(self)
         buttonsFrame.pack(pady=10)
 
-        ttk.Button(buttonsFrame, text="Reset Payments", command=lambda: self.resetPayments()).grid(row=0, column=4, padx=10, pady=5)
-        ttk.Button(buttonsFrame, text="Back to Home", command=lambda: self.backToHome()).grid(row=0, column=5, padx=10, pady=5)
+        ttk.Button(buttonsFrame, text="Reset Payments", command=lambda: self.resetPayments(), bootstyle="primary").grid(row=0, column=4, padx=10, pady=5)
+        ttk.Button(buttonsFrame, text="Back to Home", command=lambda: backToHome(self), bootstyle="danger").grid(row=0, column=5, padx=10, pady=5)
 
     def resetPayments(self):
         distributors = loadJson(f"{dbPath}/distributor.json")
@@ -774,13 +788,14 @@ class adminFrame(tk.Frame):
         writeJson(f"{dbPath}/distributor.json", distributors)
         messagebox.showinfo("Payment Reset", "All distributor payments have been reset to \u00A3 0.")
 
-    def backToHome(self):
-        self.clearFrame()
-        self.initHomePage()
-
 class customerFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
+        self.master = master
+
+        self.initHomePage()
+
+    def initHomePage(self):
         tk.Label(self, text="Customer Home Page", font=("San Francisco", 24)).pack(pady=10)
 
         # Grid layout
@@ -822,13 +837,18 @@ class customerFrame(tk.Frame):
         ttk.Label(customerDetails, text="Phone Number").grid(row=2, column=0, padx=10, pady=10)
         ttk.Label(customerDetails, text="Email").grid(row=3, column=0, padx=10, pady=10)
 
-        # Use tk.Entry for readonly fields
-        customerNameField = tk.Entry(customerDetails, textvariable=tk.StringVar(value=customerName), state='readonly')
+        # Use ttk.Entry for readonly fields
+        customerNameVar = tk.StringVar(value=customerName)
+        customerPhoneVar = tk.StringVar(value=customerPhone)
+        customerEmailVar = tk.StringVar(value=customerEmail)
+
+        customerNameField = ttk.Entry(customerDetails, textvariable=customerNameVar, state='readonly', style="TEntry")
         customerNameField.grid(row=1, column=1, padx=10, pady=10)
-        customerPhoneField = tk.Entry(customerDetails, textvariable=StringVar(value=customerPhone), state='readonly')
+        customerPhoneField = ttk.Entry(customerDetails, textvariable=customerPhoneVar, state='readonly', style="TEntry")
         customerPhoneField.grid(row=2, column=1, padx=10, pady=10)
-        customerEmailField = tk.Entry(customerDetails, textvariable=StringVar(value=customerEmail), state='readonly')
+        customerEmailField = ttk.Entry(customerDetails, textvariable=customerEmailVar, state='readonly', style="TEntry")
         customerEmailField.grid(row=3, column=1, padx=10, pady=10)
+
 
         self.entryFields = {
             "customerName": customerNameField,
@@ -841,38 +861,50 @@ class customerFrame(tk.Frame):
         ttk.Label(customerDetails, text="Total Houses Delivered To").grid(row=8, column=0, padx=10, pady=10)
         ttk.Label(customerDetails, text="Most Recent Order").grid(row=9, column=0, padx=10, pady=10)
 
-        # Use tk.Entry for readonly fields
-        tk.Entry(customerDetails, textvariable=StringVar(value=totalOrders), state='readonly').grid(row=7, column=1, padx=10, pady=10)
-        tk.Entry(customerDetails, textvariable=StringVar(value=totalHouses), state='readonly').grid(row=8, column=1, padx=10, pady=10)
-        tk.Entry(customerDetails, textvariable=StringVar(value=mostRecentOrder), state='readonly').grid(row=9, column=1, padx=10, pady=10)
+        # Use ttk.Entry for readonly fields
+        totalOrdersVar = tk.StringVar(value=str(totalOrders))
+        totalHousesVar = tk.StringVar(value=str(totalHouses))
+        mostRecentOrderVar = tk.StringVar(value=str(mostRecentOrder))
+
+        ttk.Entry(customerDetails, textvariable=totalOrdersVar, state='readonly', style="TEntry").grid(row=7, column=1, padx=10, pady=10)
+        ttk.Entry(customerDetails, textvariable=totalHousesVar, state='readonly', style="TEntry").grid(row=8, column=1, padx=10, pady=10)
+        ttk.Entry(customerDetails, textvariable=mostRecentOrderVar, state='readonly', style="TEntry").grid(row=9, column=1, padx=10, pady=10)
+
 
         # Past 3 Orders
         ttk.Label(customerDetails, text="Past 3 Orders").grid(row=0, column=2, padx=10, pady=10)
 
-        # For each order, use tk.Entry for readonly fields
+        # For each order, use ttk.Entry for readonly fields
+        orderPostCodeVars = []
+        orderDateVars = []
+        orderStatusVars = []
+
         for i, order in enumerate(orderResult):
             orderPostCode, orderDate, orderStatus = order
+            orderPostCodeVar = tk.StringVar(value=orderPostCode)
+            orderDateVar = tk.StringVar(value=orderDate)
+            orderStatusVar = tk.StringVar(value=orderStatus)
+            orderPostCodeVars.append(orderPostCodeVar)
+            orderDateVars.append(orderDateVar)
+            orderStatusVars.append(orderStatusVar)
+    
             ttk.Label(customerDetails, text="Order PostCode").grid(row=1 + i * 3, column=2, padx=10, pady=10)
-            tk.Entry(customerDetails, textvariable=StringVar(value=orderPostCode), state='readonly').grid(row=1 + i * 3, column=3, padx=10, pady=10)
-            
+            ttk.Entry(customerDetails, textvariable=orderPostCodeVar, state='readonly').grid(row=1 + i * 3, column=3, padx=10, pady=10)
+    
             ttk.Label(customerDetails, text="Order Date").grid(row=2 + i * 3, column=2, padx=10, pady=10)
-            tk.Entry(customerDetails, textvariable=StringVar(value=orderDate), state='readonly').grid(row=2 + i * 3, column=3, padx=10, pady=10)
-            
+            ttk.Entry(customerDetails, textvariable=orderDateVar, state='readonly').grid(row=2 + i * 3, column=3, padx=10, pady=10)
+    
             ttk.Label(customerDetails, text="Order Status").grid(row=3 + i * 3, column=2, padx=10, pady=10)
-            tk.Entry(customerDetails, textvariable=StringVar(value=orderStatus), state='readonly').grid(row=3 + i * 3, column=3, padx=10, pady=10)
+            ttk.Entry(customerDetails, textvariable=orderStatusVar, state='readonly').grid(row=3 + i * 3, column=3, padx=10, pady=10)
 
         # Functions
-        ttk.Button(customerDetails, text="Log Out", command=master.destroy).grid(row=0, column=4, padx=10, pady=10)
-        self.editButton = ttk.Button(customerDetails, text="Change Account Details", command=lambda: self.changeDetails())
+        ttk.Button(customerDetails, text="Log Out", command=self.master.destroy, bootstyle="danger").grid(row=0, column=4, padx=10, pady=10)
+        self.editButton = ttk.Button(customerDetails, text="Change Account Details", command=lambda: self.changeDetails(), bootstyle="info")
         self.editButton.grid(row=2, column=4, padx=10, pady=10)
-        ttk.Button(customerDetails, text="Complete Order Form", command=lambda: self.customerOrderForm()).grid(row=4, column=4, padx=10, pady=10)
-        ttk.Button(customerDetails, text="Copy Authentication Token", command=lambda: copyAuthKey()).grid(row=5, column=4, padx=10, pady=10)
-        ttk.Button(customerDetails, text="Reset Authentication Token", command=lambda: resetAuthKey()).grid(row=6, column=4, padx=10, pady=10)
-        ttk.Button(customerDetails, text="View Pending Invoices", command=lambda: self.pendingInvoices()).grid(row=7, column=4, padx=10, pady=10)
-
-    def clearFrame(self):
-        for widget in self.winfo_children():
-            widget.destroy()
+        ttk.Button(customerDetails, text="Complete Order Form", command=lambda: self.customerOrderForm(), bootstyle="primary").grid(row=4, column=4, padx=10, pady=10)
+        ttk.Button(customerDetails, text="Copy Authentication Token", command=lambda: copyAuthKey(self), bootstyle="secondary").grid(row=5, column=4, padx=10, pady=10)
+        ttk.Button(customerDetails, text="Reset Authentication Token", command=lambda: resetAuthKey(self), bootstyle="secondary").grid(row=6, column=4, padx=10, pady=10)
+        ttk.Button(customerDetails, text="View Pending Invoices", command=lambda: self.pendingInvoices(), bootstyle="warning").grid(row=7, column=4, padx=10, pady=10)
 
     def changeDetails(self):
         if self.editButton["text"] == "Change Account Details":
@@ -913,6 +945,7 @@ class customerFrame(tk.Frame):
                 field.config(state="readonly")
 
             self.editButton.config(text="Change Account Details")
+            backToHome(self)
 
     def customerOrderForm(self):
         self.customerOrderForm = tk.Toplevel(self)
@@ -936,8 +969,8 @@ class customerFrame(tk.Frame):
             orderRow = tk.Text(orderForm, height = 1, width = 25)
             orderRow.grid(column=1)
             self.orderRow[row] = orderRow
-        ttk.Button(orderForm, text="Submit", command=lambda: self.submit(orderFields)).grid(padx=10, pady=5)
-        ttk.Button(orderForm, text="Close", command=lambda: self.customerOrderForm.destroy()).grid(padx=10, pady=5)
+        ttk.Button(orderForm, text="Submit", command=lambda: self.submit(orderFields), bootstyle="success").grid(padx=10, pady=5)
+        ttk.Button(orderForm, text="Close", command=lambda: backToHome(self), bootstyle="danger").grid(padx=10, pady=5)
 
     def submit(self, orderFields):
         # Get order details from the text fields
@@ -950,6 +983,7 @@ class customerFrame(tk.Frame):
 
         self.customerOrderForm.destroy()
         del self.customerOrderForm
+        backToHome(self)
          
     def pendingInvoices(self):
         self.customerPendingInvoices = tk.Toplevel(self)
@@ -975,13 +1009,13 @@ class customerFrame(tk.Frame):
         # Insert data into Treeview
         for order in orders:
             values = [order.get(col, "N/A") for col in self.columnsToDisplay]
-            if order["orderStatus"] == "0":
+            if order["orderStatus"] == "Recieved, Awaiting Payment":
                 self.tree.insert("", "end", values=values)
 
         pendingInvoices = tk.Frame(self.customerPendingInvoices)
         pendingInvoices.pack(pady=10)
 
-        ttk.Button(pendingInvoices, text="Close", command=lambda: self.customerPendingInvoices.destroy()).grid(row=0, column=5, padx=10, pady=5)
+        ttk.Button(pendingInvoices, text="Close", command=lambda: backToHome(self), bootstyle="danger").grid(row=0, column=5, padx=10, pady=5)
 
 class distributorFrame(tk.Frame):
     def __init__(self, master):
@@ -1013,7 +1047,7 @@ class distributorFrame(tk.Frame):
                 messagebox.showerror("Database Error", f"Distributor with Id {userId} not found")
 
             # Filter orders for this distributor
-            distributorOrders = [order for order in orderData if order["distributorId"] == str(userId)]
+            distributorOrders = [order for order in orderData if str(order["distributorId"]) == str(userId)]
 
             # Compute general stats
             totalOrders = len(distributorOrders)
@@ -1026,10 +1060,13 @@ class distributorFrame(tk.Frame):
             if not recentOrders:
                 messagebox.showinfo("Recent Order Error", "No recent orders found.")
 
+
             # Get current order details, where orderId matches the currentOrderId
             if not currentOrderId == None:
-                currentOrder = [order for order in distributorOrders if order["orderId"] == int(currentOrderId)]
-                
+                print(currentOrderId)
+                print(distributorOrders)
+                currentOrder = [order for order in distributorOrders if int(order["orderId"]) == int(currentOrderId)]
+
                 # Extract details of the most recent current order
                 currentOrder = sorted(currentOrder, key=lambda x: x["orderDate"])[0]
                 orderPostCode = currentOrder["orderPostCode"]
@@ -1040,6 +1077,7 @@ class distributorFrame(tk.Frame):
                 orderPostCode = None  # No active orders
                 recentOrders = orderResult 
 
+            
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
 
@@ -1053,13 +1091,18 @@ class distributorFrame(tk.Frame):
         ttk.Label(distributorDetails, text="Phone Number").grid(row=7, column=4, padx=10, pady=10)
         ttk.Label(distributorDetails, text="Email").grid(row=8, column=4, padx=10, pady=10)
 
-        # Use tk.Entry for readonly fields
-        distributorNameField = tk.Entry(distributorDetails, textvariable=tk.StringVar(value=distributorLName), state='readonly')
+        # Use ttk.Entry for readonly fields
+        distributorNameVar = tk.StringVar(value=distributorLName)
+        distributorPhoneVar = tk.StringVar(value=distributorPhone)
+        distributorEmailVar = tk.StringVar(value=distributorEmail)
+
+        distributorNameField = ttk.Entry(distributorDetails, textvariable=distributorNameVar, state='readonly')
         distributorNameField.grid(row=6, column=5, padx=10, pady=10)
-        distributorPhoneField = tk.Entry(distributorDetails, textvariable=StringVar(value=distributorPhone), state='readonly')
+        distributorPhoneField = ttk.Entry(distributorDetails, textvariable=distributorPhoneVar, state='readonly')
         distributorPhoneField.grid(row=7, column=5, padx=10, pady=10)
-        distributorEmailField = tk.Entry(distributorDetails, textvariable=StringVar(value=distributorEmail), state='readonly')
+        distributorEmailField = ttk.Entry(distributorDetails, textvariable=distributorEmailVar, state='readonly')
         distributorEmailField.grid(row=8, column=5, padx=10, pady=10)
+
 
         self.entryFields = {
             "distributorLName": distributorNameField,
@@ -1068,7 +1111,7 @@ class distributorFrame(tk.Frame):
         }
         # Current Order Details
         if orderPostCode == None:
-            ttk.Button(distributorDetails, text="View Available Orders", command = lambda: self.viewAvailableOrders()).grid(row=0, column=0, padx=10, pady=10, columnspan=2, rowspan=5, sticky=NSEW)        
+            ttk.Button(distributorDetails, text="View Available Orders", command = lambda: self.viewAvailableOrders(), bootstyle="info").grid(row=0, column=0, padx=10, pady=10, columnspan=2, rowspan=5, sticky=NSEW)        
         else:
             ttk.Label(distributorDetails, text="Current Order").grid(row=0, column=0, padx=10, pady=10)
             ttk.Label(distributorDetails, text="Post Code").grid(row=1, column=0, padx=10, pady=10)
@@ -1076,10 +1119,16 @@ class distributorFrame(tk.Frame):
             ttk.Label(distributorDetails, text="Due Date").grid(row=3, column=0, padx=10, pady=10)
             ttk.Label(distributorDetails, text="Price").grid(row=4, column=0, padx=10, pady=10)
 
-            tk.Entry(distributorDetails, textvariable=StringVar(value=orderPostCode), state='readonly').grid(row=1, column=1, padx=10, pady=10)
-            tk.Entry(distributorDetails, textvariable=StringVar(value=orderHousesNum), state='readonly').grid(row=2, column=1, padx=10, pady=10)
-            tk.Entry(distributorDetails, textvariable=StringVar(value=orderDueDate), state='readonly').grid(row=3, column=1, padx=10, pady=10)
-            tk.Entry(distributorDetails, textvariable=StringVar(value=int(orderHousesNum) * int(distributorRate) / 20), state='readonly').grid(row=4, column=1, padx=10, pady=10)
+            orderPostCodeVar = tk.StringVar(value=orderPostCode)
+            orderHousesNumVar = tk.StringVar(value=str(orderHousesNum))
+            orderDueDateVar = tk.StringVar(value=orderDueDate)
+            orderCalculatedVar = tk.StringVar(value=str(int(orderHousesNum) * int(distributorRate) / 20))
+
+            ttk.Entry(distributorDetails, textvariable=orderPostCodeVar, state='readonly').grid(row=1, column=1, padx=10, pady=10)
+            ttk.Entry(distributorDetails, textvariable=orderHousesNumVar, state='readonly').grid(row=2, column=1, padx=10, pady=10)
+            ttk.Entry(distributorDetails, textvariable=orderDueDateVar, state='readonly').grid(row=3, column=1, padx=10, pady=10)
+            ttk.Entry(distributorDetails, textvariable=orderCalculatedVar, state='readonly').grid(row=4, column=1, padx=10, pady=10)
+
 
             # Map Image
             imagePath = f"./Maps/{orderPostCode}.png"
@@ -1098,47 +1147,56 @@ class distributorFrame(tk.Frame):
         ttk.Label(distributorDetails, text="Distributor Pending Pay").grid(row=9, column=0, padx=10, pady=10)
 
         # Statistics Fields
-        tk.Entry(distributorDetails, textvariable=StringVar(value=totalOrders), state='readonly').grid(row=7, column=1, padx=10, pady=10)
-        tk.Entry(distributorDetails, textvariable=StringVar(value=totalHouses), state='readonly').grid(row=8, column=1, padx=10, pady=10)
-        tk.Entry(distributorDetails, textvariable=StringVar(value=distributorPay), state='readonly').grid(row=9, column=1, padx=10, pady=10)
+        totalOrdersVar = tk.StringVar(value=str(totalOrders))
+        totalHousesVar = tk.StringVar(value=str(totalHouses))
+        distributorPayVar = tk.StringVar(value=str(distributorPay))
+
+        ttk.Entry(distributorDetails, textvariable=totalOrdersVar, state='readonly').grid(row=7, column=1, padx=10, pady=10)
+        ttk.Entry(distributorDetails, textvariable=totalHousesVar, state='readonly').grid(row=8, column=1, padx=10, pady=10)
+        ttk.Entry(distributorDetails, textvariable=distributorPayVar, state='readonly').grid(row=9, column=1, padx=10, pady=10)
+
 
         # Past 3 Orders
         ttk.Label(distributorDetails, text="Past 3 Orders").grid(row=0, column=2, padx=10, pady=10)
 
         # Iteration Loop for past orders
+        orderPostCodeVars = []
+        orderDateVars = []
+        orderBalanceVars = []
+
         for i, order in enumerate(orderResult):
             orderPostCode, orderHousesNum, orderDueDate = order
             orderAmount = int(distributorRate) * int(orderHousesNum) / 20
-            
-            # Use Entry widgets for each of the fields
-            ttk.Label(distributorDetails, text="Order PostCode").grid(row=3 * i + 1, column=2, padx=10, pady=10)
-            tk.Entry(distributorDetails, textvariable=StringVar(value=orderPostCode), state='readonly').grid(row=3 * i + 1, column=3, padx=10, pady=10)
-            
-            ttk.Label(distributorDetails, text="Order Date").grid(row=3 * i + 2, column=2, padx=10, pady=10)
-            tk.Entry(distributorDetails, textvariable=StringVar(value=orderDueDate), state='readonly').grid(row=3 * i + 2, column=3, padx=10, pady=10)
-            
-            ttk.Label(distributorDetails, text="Balance Added").grid(row=3 * i + 3, column=2, padx=10, pady=10)
-            tk.Entry(distributorDetails, textvariable=StringVar(value=f"{orderAmount}"), state='readonly').grid(row=3 * i + 3, column=3, padx=10, pady=10)
+
+            orderPostCodeVar = tk.StringVar(value=str(orderPostCode))
+            orderDateVar = tk.StringVar(value=str(orderDueDate))
+            orderBalanceVar = tk.StringVar(value=str(orderAmount))
+    
+            orderPostCodeVars.append(orderPostCodeVar)
+            orderDateVars.append(orderDateVar)
+            orderBalanceVars.append(orderBalanceVar)
+    
+            ttk.Label(distributorDetails, text="Order PostCode").grid(row=3*i + 1, column=2, padx=10, pady=10)
+            ttk.Entry(distributorDetails, textvariable=orderPostCodeVar, state='readonly').grid(row=3*i + 1, column=3, padx=10, pady=10)
+    
+            ttk.Label(distributorDetails, text="Order Date").grid(row=3*i + 2, column=2, padx=10, pady=10)
+            ttk.Entry(distributorDetails, textvariable=orderDateVar, state='readonly').grid(row=3*i + 2, column=3, padx=10, pady=10)
+    
+            ttk.Label(distributorDetails, text="Balance Added").grid(row=3*i + 3, column=2, padx=10, pady=10)
+            ttk.Entry(distributorDetails, textvariable=orderBalanceVar, state='readonly').grid(row=3*i + 3, column=3, padx=10, pady=10)
+
 
         # Functions
-        ttk.Button(distributorDetails, text="Log Out", command=self.master.destroy).grid(row=0, column=4, padx=10, pady=10)
-        self.editButton = ttk.Button(distributorDetails, text="Change Account Details", command=lambda: self.changeAccountDetails())
+        ttk.Button(distributorDetails, text="Log Out", command=self.master.destroy, bootstyle="danger").grid(row=0, column=4, padx=10, pady=10)
+        self.editButton = ttk.Button(distributorDetails, text="Change Account Details", command=lambda: self.changeAccountDetails(), bootstyle="info")
         self.editButton.grid(row=1, column=4, padx=10, pady=10)
-        ttk.Button(distributorDetails, text="Completed Order", command=lambda: self.markOrderCompleted()).grid(row=2, column=4, padx=10, pady=10)
-        ttk.Button(distributorDetails, text="Copy Authentication Token", command=lambda: copyAuthKey()).grid(row=3, column=4, padx=10, pady=10)
-        ttk.Button(distributorDetails, text="Reset Authentication Token", command=lambda: resetAuthKey()).grid(row=4, column=4, padx=10, pady=10)
-
-    def clearFrame(self):
-        for widget in self.winfo_children():
-            widget.destroy()
-
-    def backToHome(self):
-        self.clearFrame()
-        self.initHomePage()
+        ttk.Button(distributorDetails, text="Completed Order", command=lambda: self.markOrderCompleted(), bootstyle="primary").grid(row=2, column=4, padx=10, pady=10)
+        ttk.Button(distributorDetails, text="Copy Authentication Token", command=lambda: copyAuthKey(self), bootstyle="secondary").grid(row=3, column=4, padx=10, pady=10)
+        ttk.Button(distributorDetails, text="Reset Authentication Token", command=lambda: resetAuthKey(self), bootstyle="secondary").grid(row=4, column=4, padx=10, pady=10)
 
     def viewAvailableOrders(self):
         
-        self.clearFrame()
+        clearFrame(self)
         
         tk.Label(self, text="Available Orders", font=("San Francisco", 24)).pack(pady=10)
         
@@ -1190,7 +1248,7 @@ class distributorFrame(tk.Frame):
         buttonsFrame.pack(pady=10)
 
         self.tree.bind("<Button-3>", self.rightClick)
-        ttk.Button(buttonsFrame, text="Close", command=lambda: self.backToHome()).grid(row=0, column=5, padx=10, pady=5)
+        ttk.Button(buttonsFrame, text="Close", command=lambda: backToHome(self), bootstyle="danger").grid(row=0, column=5, padx=10, pady=5)
 
     def rightClick(self, event):
         # Create a context menu
@@ -1245,6 +1303,8 @@ class distributorFrame(tk.Frame):
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
 
+        backToHome(self)
+
     def changeAccountDetails(self):
         if self.editButton["text"] == "Change Account Details":
             # Unlock fields
@@ -1286,6 +1346,8 @@ class distributorFrame(tk.Frame):
 
             self.editButton.config(text="Change Account Details")
 
+            backToHome(self)
+
     def markOrderCompleted(self):
         # Get current orderId
         distributorData = loadJson(f"{dbPath}/distributor.json")
@@ -1294,7 +1356,6 @@ class distributorFrame(tk.Frame):
         currentOrderId = distributorData[distributorIndex].get("distributorCurrentOrder", "N/A")
         if currentOrderId == None:
             messagebox.showerror("No Order", "No current order found.")
-            return
         else:
             # Load JSON data
             orderData = loadJson(f"{dbPath}/order.json")
@@ -1310,6 +1371,10 @@ class distributorFrame(tk.Frame):
                 # Update the distributor's current order
                 distributorData[distributorIndex]["distributorCurrentOrder"] = None
 
+                #Update distributor payment
+                distributorData[distributorIndex]["distributorPay"] = float(distributorData[distributorIndex]["distributorPay"]) + (int(orderData[orderPosition]["orderHousesNum"]) * float(distributorData[distributorIndex]["distributorRate"]) / 20)
+
+
                 # Save updated JSON data
                 writeJson(f"{dbPath}/order.json", orderData)
                 writeJson(f"{dbPath}/distributor.json", distributorData)
@@ -1320,7 +1385,7 @@ class distributorFrame(tk.Frame):
             else:
                 messagebox.showerror("Database Error", f"Order with Id {currentOrderId} not found in index")
 
-        self.initHomePage()
+        backToHome(self)
 
 
 # Main Running Loop

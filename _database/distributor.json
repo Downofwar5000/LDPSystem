@@ -1,24 +1,24 @@
 [
-  {
-    "distributorId": 1001,
-    "distributorEmail": "distributor@example.com",
-    "authenticationKey": "E7FIYOJXY4CWXZTZ2NEMD2OMCBDIFBW7",
-    "distributorPhone": "07123456789",
-    "distributorPay": "1200",
-    "distributorCurrentOrder": null,
-    "distributorRate": "5",
-    "distributorFName": "Alice",
-    "distributorLName": "Smiths"
-  },
-  {
-    "distributorId": 1002,
-    "distributorEmail": "distributor@example.com",
-    "authenticationKey": "E7FIYOJXY4CWXZTZ2NEMD2OMCBDIFBW7",
-    "distributorPhone": "07123456789",
-    "distributorPay": "1500",
-    "distributorCurrentOrder": null,
-    "distributorRate": "5",
-    "distributorFName": "John",
-    "distributorLName": "Smiths"
-  }
+    {
+        "distributorId": 1001,
+        "distributorEmail": "distributor@example.com",
+        "authenticationKey": "E7FIYOJXY4CWXZTZ2NEMD2OMCBDIFBW7",
+        "distributorPhone": "07123456789",
+        "distributorPay": 1250.0,
+        "distributorCurrentOrder": null,
+        "distributorRate": "5",
+        "distributorFName": "Alice",
+        "distributorLName": "Smiths"
+    },
+    {
+        "distributorId": 1002,
+        "distributorEmail": "distributor@example.com",
+        "authenticationKey": "E7FIYOJXY4CWXZTZ2NEMD2OMCBDIFBW7",
+        "distributorPhone": "07123456789",
+        "distributorPay": 1500,
+        "distributorCurrentOrder": 100007,
+        "distributorRate": "5",
+        "distributorFName": "John",
+        "distributorLName": "Smiths"
+    }
 ]
