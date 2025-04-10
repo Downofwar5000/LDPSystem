@@ -1,0 +1,11 @@
+pyotp
+osmnx
+geopandas
+networkx
+matplotlib
+contextily
+geopy
+scipy
+shapely
+PIL
+ttkbootstrap

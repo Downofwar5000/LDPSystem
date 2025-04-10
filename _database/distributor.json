@@ -4,7 +4,7 @@
         "distributorEmail": "distributor@example.com",
         "authenticationKey": "E7FIYOJXY4CWXZTZ2NEMD2OMCBDIFBW7",
         "distributorPhone": "07123456789",
-        "distributorPay": 1250.0,
+        "distributorPay": 1278.25,
         "distributorCurrentOrder": null,
         "distributorRate": "5",
         "distributorFName": "Alice",
@@ -20,5 +20,16 @@
         "distributorRate": "5",
         "distributorFName": "John",
         "distributorLName": "Smiths"
+    },
+    {
+        "authenticationKey": "43UU7CZ2Q6IYBE7R73Z3QFKQ7JJWMWIF",
+        "distributorId": 1003,
+        "distributorFName": "John",
+        "distributorLName": "Smith",
+        "distributorPay": 0,
+        "distributorEmail": "john@example.com",
+        "distributorPhone": "071234567893",
+        "distributorCurrentOrder": null,
+        "distributorRate": "5"
     }
 ]
