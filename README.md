@@ -102,22 +102,23 @@ The system operates with JSON files for data management:
 
 ---
 
-## Testing and Evaluation
-
-Ensure the system meets all outlined evaluation and testing criteria:
-
-- Conduct functional, unit, integration, and system tests.
-- Evaluate effectiveness of tools, data structures, and user interface.
-- Document thoroughly all testing activities and outcomes.
-
----
 
 ## External Libraries
 
 Specify any external libraries used, for example:
 
-- Flask (if used for web application)
-- JSON (standard Python library)
+- turtle
+- pyotp
+- osmnx
+- geopandas
+- networkx
+- matplotlib
+- contextily
+- geopy
+- scipy
+- shapely
+- PIL
+- ttkbootstrap
 
 ---
 
