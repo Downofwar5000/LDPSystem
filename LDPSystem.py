@@ -276,8 +276,8 @@ def getHouseholdNetwork(postcode, country="UK"):
 
 # Define global variables
 
-userId = 1001
-table = "distributor"
+userId = 10001
+table = "customer"
 dbPath = "./_database"
 indexFile = f"{dbPath}/_index.json"
 
@@ -295,11 +295,11 @@ class Application(tk.Tk):
 
         # Set up ttk theme and styling
         style = ttk.Style()
-        style.theme_use("vapor")
+        style.theme_use("solar")
 
         self.resizable(True, True)
         self.currentFrame = None
-        self.switchFrame(distributorFrame) 
+        self.switchFrame(adminFrame) 
 
 
 
