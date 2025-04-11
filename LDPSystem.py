@@ -1,5 +1,4 @@
 # Import libraries
-from turtle import update
 import pyotp
 import time
 import tkinter as tk
@@ -99,8 +98,10 @@ def submit(self, orderFields, result):
     # Check if the postcode exists and generate map
     try:
         HousesNum = getHouseholdNetwork(result[1])
-    except ValueError:
-        messagebox.showerror("Invalid Postcode", "Please enter a valid postcode.")
+        if HousesNum == None:
+            return
+    except ValueError as e:
+        messagebox.showerror("Network generation error", f"Network error: {e}.")
         return
 
     # Create dyanimc variables for the order
@@ -121,7 +122,7 @@ def submit(self, orderFields, result):
         "orderMap": f"./Maps/{result[1]}.png",
         "orderHousesNum": str(HousesNum),
         "customerId": str(result[2]),
-        "distributor": None
+        "distributorId": None
     }
 
     # Add dynamic fields 
@@ -211,16 +212,16 @@ def getHouseholdNetwork(postcode, country="UK"):
     # Get coordinates of postcode
     location = geolocator.geocode(f"{postcode}, {country}", exactly_one=True)
     if not location:
-        print("Postcode not found")
+        messagebox.showerror("Post Code Error", "Please enter a valid Post Code")
         return None
 
     lat, lon = location.latitude, location.longitude
 
     # Fetch buildings within a 500m radius which is a standard LDP leaflet drop
-    buildings = ox.features_from_point((lat, lon), tags={'building': True}, dist=200)
+    buildings = ox.features_from_point((lat, lon), tags={'building': True}, dist=500)
     
     if buildings.empty:
-        print("No buildings found in the area")
+        messagebox.showerror("Post Code Error", "No buildings found in the area")
         return None
 
     # Extract centroids (representing households)
@@ -276,8 +277,8 @@ def getHouseholdNetwork(postcode, country="UK"):
 
 # Define global variables
 
-userId = 1001
-table = "distributor"
+userId = None
+table = None
 dbPath = "./_database"
 indexFile = f"{dbPath}/_index.json"
 
@@ -299,7 +300,7 @@ class Application(tk.Tk):
 
         self.resizable(True, True)
         self.currentFrame = None
-        self.switchFrame(distributorFrame) 
+        self.switchFrame(adminFrame) 
 
 
 
@@ -334,17 +335,21 @@ class Login(tk.Frame):
         global table
         enteredId = enteredId.get("1.0", tk.END).strip()
         userCode = userCode.get("1.0", tk.END).strip()
-        Id = [[2, 4, 5],["admin", "distributor", "customer"]]
+        Id = [[2, 4, 5],
+              ["admin", "distributor", "customer"],
+              [adminFrame, distributorFrame, customerFrame]
+              ]
         try:
             arrayPos = Id[0].index(len(enteredId))  # Look for the length in Id[1]
         except ValueError:
             messagebox.showerror("User Error","Not Logged In, Incorrect Id")
         userId = enteredId
         table = Id[1][arrayPos]
+        frameName = Id[2][arrayPos]
         correctKey = generateAuthKey(fetchAuthById(enteredId))
         print(correctKey)
         if userCode in correctKey:
-            self.master.switchFrame(f"{table} + Frame")
+            self.master.switchFrame(frameName)
         else:
             messagebox.showerror("User Error", "Not Logged In, Incorrect Code")
             return False
@@ -382,6 +387,7 @@ class adminFrame(tk.Frame):
                                      "orderDate", 
                                      "invoiceAmount",
                                      "orderMap",
+                                     "orderHousesNum",
                                      "orderDueDate",
                                      "orderPostCode",
                                      "distributorId",
@@ -613,6 +619,7 @@ class adminFrame(tk.Frame):
         self.populateList()
     
     def addRecord(self):
+        print("test")
         self.addRecord = tk.Toplevel(self)
         title = "Create" + self.tableName.capitalize() + "Record"
         self.addRecord.title(title)
@@ -631,9 +638,9 @@ class adminFrame(tk.Frame):
             text = col[tableType:]
             tk.Label(self.addRecord, text=text).grid(padx = 5, pady = 5)
             newRecord = tk.Text(self.addRecord, height = 1, width = 25)
-            newRecord.grid(column = 1, padx = 5, pady = 5)
+            newRecord.grid(column = 1, padx = 5, pady = 5, sticky=NSEW)
             self.newRecord[col] = newRecord
-        ttk.Button(self.addRecord, text="Submit", command=self.submit, bootstyle="success").grid()
+        ttk.Button(self.addRecord, text="Submit", command=self.submit, bootstyle="success").grid(rowspan=2, columnspan=2, pady=10, padx=10, sticky=NSEW)
 
     def submit(self):
         result = []
@@ -645,8 +652,20 @@ class adminFrame(tk.Frame):
         # Distributor Validation
         if self.tableName == "distributor":
             # Load input values
-            distributorId, distributorFName, distributorLName, distributorEmail, distributorPhone, distributorPay = result
+            distributorId, distributorFName, distributorLName, distributorPay, distributorEmail, distributorPhone, distributorCurrentOrder, distributorRate = result
             
+            if distributorId:
+                if len(distributorId) != 4 or not distributorId.isdigit():
+                    messagebox.showerror("Validation Error", "Distributor ID must be numeric and be 4 numbers long.")
+                    return
+            if distributorCurrentOrder:
+                # Check if the order ID is in the order db file
+                orderData = loadJson(f"{dbPath}/order.json")
+                if not any(record.get("orderId") == distributorCurrentOrder for record in orderData):
+                    messagebox.showerror("Invalid Order ID", "The entered current order doesn't exist or isn't available to be taken out for delivery")
+                    return
+            else:
+                distributorCurrentOrder = None
             if not distributorFName or not distributorLName:
                 messagebox.showerror("Validation Error", "Distributor first and last names cannot be empty.")
                 return
@@ -656,14 +675,24 @@ class adminFrame(tk.Frame):
             if not distributorPhone.isdigit():
                 messagebox.showerror("Validation Error", "Distributor phone number must be numeric.")
                 return
+            if distributorRate:
+                if not distributorRate.isdigit():
+                    messagebox.showerror("Validation Error", "Distributor Rate must be numeric.")
+            else:
+                messagebox.showerror("Defaulted Rate", "The Distributor Rate will be defaulted")
+                distributorRate = 5
             distributorPay = 0
 
-            result = [distributorId, distributorFName, distributorLName, distributorEmail, distributorPhone, distributorPay]
+            result = [distributorId, distributorFName, distributorLName, distributorPay, distributorEmail, distributorPhone, distributorCurrentOrder, distributorRate]
 
         elif self.tableName == "customer":
             # Load input values
-            customerId, customerName, customerEmail, customerPhone, customerNotes, customerRate = result
+            customerId, customerEmail, customerName, customerNotes, customerPhone, customerRate = result
             
+            if customerId:
+                if len(customerId) != 5 or not customerId.isdigit():
+                    messagebox.showerror("Validation Error", "Customer ID must be numeric and be 5 numbers long.")
+                    return
             if not customerName:
                 messagebox.showerror("Validation Error", "Customer name cannot be empty.")
                 return
@@ -684,10 +713,18 @@ class adminFrame(tk.Frame):
                     messagebox.showerror("Validation Error", "Customer rate must be numeric.")
                     return
 
-            result = [customerId, customerName, customerEmail, customerPhone, customerNotes, customerRate]
+            result = [customerId, customerEmail, customerName, customerNotes, customerPhone, customerRate]
 
         elif self.tableName == "admin":
             adminId, adminEmail, adminPhone = result
+            
+            if adminId:
+                if len(adminId) != 2 or not adminId.isdigit():
+                    messagebox.showerror("Validation Error", "Admin ID must be numeric and be 2 numbers long.")
+                    return
+
+
+
             if "@" not in adminEmail:
                 messagebox.showerror("Validation Error", "Please enter a valid admin email.")
                 return
@@ -707,10 +744,17 @@ class adminFrame(tk.Frame):
         tableData = loadJson(path)
 
         # Determine a unique Id
-        if not result[0]:
-            recordData[self.tableName + "Id"] = max([record.get(self.tableName + "Id", 0) for record in tableData], default=0) + 1
+        if result[0]: 
+            # Check if the Id already exists
+            if any(record.get(self.tableName + "Id") == result[0] for record in tableData):
+                messagebox.showerror("Validation Error", f"{self.tableName.capitalize()} ID already exists.")
+                return
+            else:
+                messagebox.showinfo("Entered an ID", "The ID you entered will be used to log into the account.")
+                recordData[self.tableName + "Id"] = result[0]
         else:
-            recordData[self.tableName + "Id"] = result[0]
+            recordData[self.tableName + "Id"] = max([record.get(self.tableName + "Id", 0) for record in tableData], default=0) + 1
+
 
         # Append new record and update JSON storage
         tableData.append(recordData)
@@ -747,6 +791,7 @@ class adminFrame(tk.Frame):
         # Get order details from the text fields
         result = [str(orderRow.get("1.0", "end-1c")) for col, orderRow in self.orderRow.items()]
         print(result)
+
         submit(self, orderFields, result)
 
         # Switch frame after submission
@@ -1086,7 +1131,7 @@ class distributorFrame(tk.Frame):
         distributorDetails.pack(pady=20)
 
         # Account Details
-        ttk.Label(distributorDetails, text="Account Details").grid(row=5, column=4)
+        ttk.Label(distributorDetails, text="Account Details").grid(row=5, column=4, columnspan=2)
         ttk.Label(distributorDetails, text="Name").grid(row=6, column=4, padx=10, pady=10)
         ttk.Label(distributorDetails, text="Phone Number").grid(row=7, column=4, padx=10, pady=10)
         ttk.Label(distributorDetails, text="Email").grid(row=8, column=4, padx=10, pady=10)
@@ -1113,7 +1158,7 @@ class distributorFrame(tk.Frame):
         if orderPostCode == None:
             ttk.Button(distributorDetails, text="View Available Orders", command = lambda: self.viewAvailableOrders(), bootstyle="info").grid(row=0, column=0, padx=10, pady=10, columnspan=2, rowspan=5, sticky=NSEW)        
         else:
-            ttk.Label(distributorDetails, text="Current Order").grid(row=0, column=0, padx=10, pady=10)
+            ttk.Label(distributorDetails, text="Current Order").grid(row=0, column=0, padx=10, pady=10, columnspan=2)
             ttk.Label(distributorDetails, text="Post Code").grid(row=1, column=0, padx=10, pady=10)
             ttk.Label(distributorDetails, text="Number of Houses").grid(row=2, column=0, padx=10, pady=10)
             ttk.Label(distributorDetails, text="Due Date").grid(row=3, column=0, padx=10, pady=10)
@@ -1141,7 +1186,7 @@ class distributorFrame(tk.Frame):
             label.grid(row=0, column=5, padx=10, pady=5, rowspan=5, columnspan=2)
 
         # Account Statistics
-        ttk.Label(distributorDetails, text="Account Statistics").grid(row=6, column=0, padx=10, pady=10)
+        ttk.Label(distributorDetails, text="Account Statistics").grid(row=6, column=0, padx=10, pady=10, columnspan=2)
         ttk.Label(distributorDetails, text="Total Orders Completed").grid(row=7, column=0, padx=10, pady=10)
         ttk.Label(distributorDetails, text="Total Houses Delivered To").grid(row=8, column=0, padx=10, pady=10)
         ttk.Label(distributorDetails, text="Distributor Pending Pay").grid(row=9, column=0, padx=10, pady=10)
@@ -1157,7 +1202,7 @@ class distributorFrame(tk.Frame):
 
 
         # Past 3 Orders
-        ttk.Label(distributorDetails, text="Past 3 Orders").grid(row=0, column=2, padx=10, pady=10)
+        ttk.Label(distributorDetails, text="Past 3 Orders").grid(row=0, column=2, padx=10, pady=10, columnspan=2)
 
         # Iteration Loop for past orders
         orderPostCodeVars = []
@@ -1362,7 +1407,7 @@ class distributorFrame(tk.Frame):
             orderIndex = indexData.get("orderIndex", {})
             
             # Find record's position using the index
-            orderPosition = orderIndex.get(currentOrderId)
+            orderPosition = orderIndex.get(str(currentOrderId))
             
             if orderPosition is not None:
                 # Mark the record as Completed
