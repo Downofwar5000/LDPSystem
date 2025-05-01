@@ -7,5 +7,5 @@ contextily
 geopy
 scipy
 shapely
-PIL
+Pillow
 ttkbootstrap
