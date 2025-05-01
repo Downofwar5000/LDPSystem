@@ -46,7 +46,7 @@ while True:
     try:
         arrayPos = ID[0].index(len(userID))  # Look for the length in ID[1]
         table = ID[1][arrayPos]
-        correctKey = generateAuthKey(fetchAuthByID(userID))
+        correctKey = generateAuthKey(fetchAuthByID(userID, table))
     except ValueError:
         print("Length not found in the array.", "Please try a different ID")
 
