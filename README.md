@@ -14,17 +14,17 @@ This document provides instructions for operating the system, including how to l
 
 - **Admins:**
 
-  - Email: \`10\`
+  - User ID: \`10\`
   - Authentication Key: `SMJMPTNFE5KDFVDFCVBHSYOKYNNRJOOE`
 
 - **Distributors:**
 
-  - Example Email: `1001`
+  - User ID: `1001`
   - Authentication Key: `SMJMPTNFE5KDFVDFCVBHSYOKYNNRJOOE`
 
 - **Customers:**
 
-  - Example Email: `10001`
+  - User ID: `10001`
   - Authentication Key: `SMJMPTNFE5KDFVDFCVBHSYOKYNNRJOOE`
 
 Ensure to use your provided authentication key for successful login.
@@ -43,7 +43,7 @@ The system operates with JSON files for data management:
 
 ---
 
-## How to Run the Website
+## How to Run the Program
 
 1. Ensure your development environment has Python installed.
 
