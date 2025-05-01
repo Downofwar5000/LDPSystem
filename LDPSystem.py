@@ -300,7 +300,7 @@ class Application(tk.Tk):
 
         self.resizable(True, True)
         self.currentFrame = None
-        self.switchFrame(adminFrame) 
+        self.switchFrame(Login) 
 
 
 
@@ -883,15 +883,19 @@ class customerFrame(tk.Frame):
         ttk.Label(customerDetails, text="Email").grid(row=3, column=0, padx=10, pady=10)
 
         # Use ttk.Entry for readonly fields
-        customerNameVar = tk.StringVar(value=customerName)
-        customerPhoneVar = tk.StringVar(value=customerPhone)
-        customerEmailVar = tk.StringVar(value=customerEmail)
-
-        customerNameField = ttk.Entry(customerDetails, textvariable=customerNameVar, state='readonly', style="TEntry")
+        customerNameField = ttk.Entry(customerDetails, style="TEntry", state='normal')
+        customerNameField.insert(0, customerName)
+        customerNameField.configure(state='readonly')
         customerNameField.grid(row=1, column=1, padx=10, pady=10)
-        customerPhoneField = ttk.Entry(customerDetails, textvariable=customerPhoneVar, state='readonly', style="TEntry")
+
+        customerPhoneField = ttk.Entry(customerDetails, style="TEntry", state='normal')
+        customerPhoneField.insert(0, customerPhone)
+        customerPhoneField.configure(state='readonly')
         customerPhoneField.grid(row=2, column=1, padx=10, pady=10)
-        customerEmailField = ttk.Entry(customerDetails, textvariable=customerEmailVar, state='readonly', style="TEntry")
+
+        customerEmailField = ttk.Entry(customerDetails, style="TEntry", state='normal')
+        customerEmailField.insert(0, customerEmail)
+        customerEmailField.configure(state='readonly')
         customerEmailField.grid(row=3, column=1, padx=10, pady=10)
 
 
@@ -907,13 +911,20 @@ class customerFrame(tk.Frame):
         ttk.Label(customerDetails, text="Most Recent Order").grid(row=9, column=0, padx=10, pady=10)
 
         # Use ttk.Entry for readonly fields
-        totalOrdersVar = tk.StringVar(value=str(totalOrders))
-        totalHousesVar = tk.StringVar(value=str(totalHouses))
-        mostRecentOrderVar = tk.StringVar(value=str(mostRecentOrder))
+        totalOrdersField = ttk.Entry(customerDetails, style="TEntry", state='normal')
+        totalOrdersField.insert(0, str(totalOrders))
+        totalOrdersField.configure(state='readonly')
+        totalOrdersField.grid(row=7, column=1, padx=10, pady=10)
 
-        ttk.Entry(customerDetails, textvariable=totalOrdersVar, state='readonly', style="TEntry").grid(row=7, column=1, padx=10, pady=10)
-        ttk.Entry(customerDetails, textvariable=totalHousesVar, state='readonly', style="TEntry").grid(row=8, column=1, padx=10, pady=10)
-        ttk.Entry(customerDetails, textvariable=mostRecentOrderVar, state='readonly', style="TEntry").grid(row=9, column=1, padx=10, pady=10)
+        totalHousesField = ttk.Entry(customerDetails, style="TEntry", state='normal')
+        totalHousesField.insert(0, str(totalHouses))
+        totalHousesField.configure(state='readonly')
+        totalHousesField.grid(row=8, column=1, padx=10, pady=10)
+
+        mostRecentOrderField = ttk.Entry(customerDetails, style="TEntry", state='normal')
+        mostRecentOrderField.insert(0, str(mostRecentOrder))
+        mostRecentOrderField.configure(state='readonly')
+        mostRecentOrderField.grid(row=9, column=1, padx=10, pady=10)
 
 
         # Past 3 Orders
@@ -926,21 +937,28 @@ class customerFrame(tk.Frame):
 
         for i, order in enumerate(orderResult):
             orderPostCode, orderDate, orderStatus = order
-            orderPostCodeVar = tk.StringVar(value=orderPostCode)
-            orderDateVar = tk.StringVar(value=orderDate)
-            orderStatusVar = tk.StringVar(value=orderStatus)
-            orderPostCodeVars.append(orderPostCodeVar)
-            orderDateVars.append(orderDateVar)
-            orderStatusVars.append(orderStatusVar)
+
+            orderPostCodeVars.append(orderPostCode)
+            orderDateVars.append(orderDate)
+            orderStatusVars.append(orderStatus)
     
             ttk.Label(customerDetails, text="Order PostCode").grid(row=1 + i * 3, column=2, padx=10, pady=10)
-            ttk.Entry(customerDetails, textvariable=orderPostCodeVar, state='readonly').grid(row=1 + i * 3, column=3, padx=10, pady=10)
+            orderPostCodeField = ttk.Entry(customerDetails, state='normal')
+            orderPostCodeField.insert(0, orderPostCode)
+            orderPostCodeField.configure(state='readonly')
+            orderPostCodeField.grid(row=1 + i * 3, column=3, padx=10, pady=10)
     
             ttk.Label(customerDetails, text="Order Date").grid(row=2 + i * 3, column=2, padx=10, pady=10)
-            ttk.Entry(customerDetails, textvariable=orderDateVar, state='readonly').grid(row=2 + i * 3, column=3, padx=10, pady=10)
+            orderDateField = ttk.Entry(customerDetails, state='normal')
+            orderDateField.insert(0, orderDate)
+            orderDateField.configure(state='readonly')
+            orderDateField.grid(row=2 + i * 3, column=3, padx=10, pady=10)
     
             ttk.Label(customerDetails, text="Order Status").grid(row=3 + i * 3, column=2, padx=10, pady=10)
-            ttk.Entry(customerDetails, textvariable=orderStatusVar, state='readonly').grid(row=3 + i * 3, column=3, padx=10, pady=10)
+            orderStatusField = ttk.Entry(customerDetails, state='normal')
+            orderStatusField.insert(0, orderStatus)
+            orderStatusField.configure(state='readonly')
+            orderStatusField.grid(row=3 + i * 3, column=3, padx=10, pady=10)
 
         # Functions
         ttk.Button(customerDetails, text="Log Out", command=self.master.destroy, bootstyle="danger").grid(row=0, column=4, padx=10, pady=10)
@@ -1137,17 +1155,20 @@ class distributorFrame(tk.Frame):
         ttk.Label(distributorDetails, text="Email").grid(row=8, column=4, padx=10, pady=10)
 
         # Use ttk.Entry for readonly fields
-        distributorNameVar = tk.StringVar(value=distributorLName)
-        distributorPhoneVar = tk.StringVar(value=distributorPhone)
-        distributorEmailVar = tk.StringVar(value=distributorEmail)
-
-        distributorNameField = ttk.Entry(distributorDetails, textvariable=distributorNameVar, state='readonly')
+        distributorNameField = ttk.Entry(distributorDetails, state='normal')
+        distributorNameField.insert(0, distributorLName)
+        distributorNameField.configure(state='readonly')
         distributorNameField.grid(row=6, column=5, padx=10, pady=10)
-        distributorPhoneField = ttk.Entry(distributorDetails, textvariable=distributorPhoneVar, state='readonly')
-        distributorPhoneField.grid(row=7, column=5, padx=10, pady=10)
-        distributorEmailField = ttk.Entry(distributorDetails, textvariable=distributorEmailVar, state='readonly')
-        distributorEmailField.grid(row=8, column=5, padx=10, pady=10)
 
+        distributorPhoneField = ttk.Entry(distributorDetails, state='normal')
+        distributorPhoneField.insert(0, distributorPhone)
+        distributorPhoneField.configure(state='readonly')
+        distributorPhoneField.grid(row=7, column=5, padx=10, pady=10)
+
+        distributorEmailField = ttk.Entry(distributorDetails, state='normal')
+        distributorEmailField.insert(0, distributorEmail)
+        distributorEmailField.configure(state='readonly')
+        distributorEmailField.grid(row=8, column=5, padx=10, pady=10)
 
         self.entryFields = {
             "distributorLName": distributorNameField,
@@ -1164,15 +1185,25 @@ class distributorFrame(tk.Frame):
             ttk.Label(distributorDetails, text="Due Date").grid(row=3, column=0, padx=10, pady=10)
             ttk.Label(distributorDetails, text="Price").grid(row=4, column=0, padx=10, pady=10)
 
-            orderPostCodeVar = tk.StringVar(value=orderPostCode)
-            orderHousesNumVar = tk.StringVar(value=str(orderHousesNum))
-            orderDueDateVar = tk.StringVar(value=orderDueDate)
-            orderCalculatedVar = tk.StringVar(value=str(int(orderHousesNum) * int(distributorRate) / 20))
+            orderPostCodeField = ttk.Entry(distributorDetails, state='normal')
+            orderPostCodeField.insert(0, orderPostCode)
+            orderPostCodeField.configure(state='readonly')
+            orderPostCodeField.grid(row=1, column=1, padx=10, pady=10)
 
-            ttk.Entry(distributorDetails, textvariable=orderPostCodeVar, state='readonly').grid(row=1, column=1, padx=10, pady=10)
-            ttk.Entry(distributorDetails, textvariable=orderHousesNumVar, state='readonly').grid(row=2, column=1, padx=10, pady=10)
-            ttk.Entry(distributorDetails, textvariable=orderDueDateVar, state='readonly').grid(row=3, column=1, padx=10, pady=10)
-            ttk.Entry(distributorDetails, textvariable=orderCalculatedVar, state='readonly').grid(row=4, column=1, padx=10, pady=10)
+            orderHousesNumField = ttk.Entry(distributorDetails, state='normal')
+            orderHousesNumField.insert(0, str(orderHousesNum))
+            orderHousesNumField.configure(state='readonly')
+            orderHousesNumField.grid(row=2, column=1, padx=10, pady=10)
+
+            orderDueDateField = ttk.Entry(distributorDetails, state='normal')
+            orderDueDateField.insert(0, orderDueDate)
+            orderDueDateField.configure(state='readonly')
+            orderDueDateField.grid(row=3, column=1, padx=10, pady=10)
+
+            orderCalculatedField = ttk.Entry(distributorDetails, state='normal')
+            orderCalculatedField.insert(0, str(int(orderHousesNum) * int(distributorRate) / 20))
+            orderCalculatedField.configure(state='readonly')
+            orderCalculatedField.grid(row=4, column=1, padx=10, pady=10)
 
 
             # Map Image
@@ -1192,13 +1223,20 @@ class distributorFrame(tk.Frame):
         ttk.Label(distributorDetails, text="Distributor Pending Pay").grid(row=9, column=0, padx=10, pady=10)
 
         # Statistics Fields
-        totalOrdersVar = tk.StringVar(value=str(totalOrders))
-        totalHousesVar = tk.StringVar(value=str(totalHouses))
-        distributorPayVar = tk.StringVar(value=str(distributorPay))
+        totalOrdersDistField = ttk.Entry(distributorDetails, state='normal')
+        totalOrdersDistField.insert(0, str(totalOrders))
+        totalOrdersDistField.configure(state='readonly')
+        totalOrdersDistField.grid(row=7, column=1, padx=10, pady=10)
 
-        ttk.Entry(distributorDetails, textvariable=totalOrdersVar, state='readonly').grid(row=7, column=1, padx=10, pady=10)
-        ttk.Entry(distributorDetails, textvariable=totalHousesVar, state='readonly').grid(row=8, column=1, padx=10, pady=10)
-        ttk.Entry(distributorDetails, textvariable=distributorPayVar, state='readonly').grid(row=9, column=1, padx=10, pady=10)
+        totalHousesDistField = ttk.Entry(distributorDetails, state='normal')
+        totalHousesDistField.insert(0, str(totalHouses))
+        totalHousesDistField.configure(state='readonly')
+        totalHousesDistField.grid(row=8, column=1, padx=10, pady=10)
+
+        distributorPayField = ttk.Entry(distributorDetails, state='normal')
+        distributorPayField.insert(0, str(distributorPay))
+        distributorPayField.configure(state='readonly')
+        distributorPayField.grid(row=9, column=1, padx=10, pady=10)
 
 
         # Past 3 Orders
@@ -1212,23 +1250,28 @@ class distributorFrame(tk.Frame):
         for i, order in enumerate(orderResult):
             orderPostCode, orderHousesNum, orderDueDate = order
             orderAmount = int(distributorRate) * int(orderHousesNum) / 20
-
-            orderPostCodeVar = tk.StringVar(value=str(orderPostCode))
-            orderDateVar = tk.StringVar(value=str(orderDueDate))
-            orderBalanceVar = tk.StringVar(value=str(orderAmount))
     
-            orderPostCodeVars.append(orderPostCodeVar)
-            orderDateVars.append(orderDateVar)
-            orderBalanceVars.append(orderBalanceVar)
+            orderPostCodeVars.append(orderPostCode)
+            orderDateVars.append(orderDueDate)
+            orderBalanceVars.append(orderAmount)
     
             ttk.Label(distributorDetails, text="Order PostCode").grid(row=3*i + 1, column=2, padx=10, pady=10)
-            ttk.Entry(distributorDetails, textvariable=orderPostCodeVar, state='readonly').grid(row=3*i + 1, column=3, padx=10, pady=10)
+            orderPostCodeSummaryField = ttk.Entry(distributorDetails, state='normal')
+            orderPostCodeSummaryField.insert(0, str(orderPostCode))
+            orderPostCodeSummaryField.configure(state='readonly')
+            orderPostCodeSummaryField.grid(row=3*i + 1, column=3, padx=10, pady=10)
     
             ttk.Label(distributorDetails, text="Order Date").grid(row=3*i + 2, column=2, padx=10, pady=10)
-            ttk.Entry(distributorDetails, textvariable=orderDateVar, state='readonly').grid(row=3*i + 2, column=3, padx=10, pady=10)
+            orderDateSummaryField = ttk.Entry(distributorDetails, state='normal')
+            orderDateSummaryField.insert(0, str(orderDueDate))
+            orderDateSummaryField.configure(state='readonly')
+            orderDateSummaryField.grid(row=3*i + 2, column=3, padx=10, pady=10)
     
             ttk.Label(distributorDetails, text="Balance Added").grid(row=3*i + 3, column=2, padx=10, pady=10)
-            ttk.Entry(distributorDetails, textvariable=orderBalanceVar, state='readonly').grid(row=3*i + 3, column=3, padx=10, pady=10)
+            orderBalanceSummaryField = ttk.Entry(distributorDetails, state='normal')
+            orderBalanceSummaryField.insert(0, str(orderAmount))
+            orderBalanceSummaryField.configure(state='readonly')
+            orderBalanceSummaryField.grid(row=3*i + 3, column=3, padx=10, pady=10)
 
 
         # Functions
@@ -1238,6 +1281,8 @@ class distributorFrame(tk.Frame):
         ttk.Button(distributorDetails, text="Completed Order", command=lambda: self.markOrderCompleted(), bootstyle="primary").grid(row=2, column=4, padx=10, pady=10)
         ttk.Button(distributorDetails, text="Copy Authentication Token", command=lambda: copyAuthKey(self), bootstyle="secondary").grid(row=3, column=4, padx=10, pady=10)
         ttk.Button(distributorDetails, text="Reset Authentication Token", command=lambda: resetAuthKey(self), bootstyle="secondary").grid(row=4, column=4, padx=10, pady=10)
+
+        distributorDetails.update()
 
     def viewAvailableOrders(self):
         
